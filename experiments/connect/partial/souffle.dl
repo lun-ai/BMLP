@@ -1,0 +1,8 @@
+.decl edge(n:symbol,m:symbol)
+.input edge
+.decl connect(n:symbol,m:symbol)
+connect(x,y):-edge(x,y).
+connect(x,y):-edge(x,z),connect(z,y).
+.decl closure(n:symbol,m:symbol)
+closure("c1",x) :- connect("c1",x).
+.output closure
