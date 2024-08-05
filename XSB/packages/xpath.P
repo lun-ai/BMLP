@@ -1,0 +1,44 @@
+/* File:      xpath.P
+** Author(s): Rohan Shirwaikar
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 2004
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+** 
+*/
+
+:- import bootstrap_package/2 from packaging.
+:- import allocate_xpath_error_term__/1,
+	  parse_xpath__/4
+   from xpathparser.
+:- export parse_xpath/4.
+
+:- bootstrap_package([xpath,cc], xpath), [xpathconfig].
+
+
+throw_error( Error) :- var( Error),!.
+throw_error( Error) :- throw( Error).
+
+parse_xpath( X,Y,Z,N):-
+	( var(Z) -> true
+	;
+	    abort('++ABORT[xpath]> The output term should be a variable')
+	),
+	( atom(N) -> true
+	;
+	    abort('++ABORT[xpath]> The namespace list should be a space separated string of the pairs of the form prefix=namespace')
+	),
+	allocate_xpath_error_term__(XpathErr),
+        parse_xpath__(X,Y,Z,N),
+	throw_error(XpathErr).

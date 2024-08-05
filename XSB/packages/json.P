@@ -1,0 +1,179 @@
+/* File:      json.P
+** Author(s): Michael Kifer
+** Contact:   xsb-users@lists.sourceforge.net
+** 
+** Copyright (C) The Research Foundation of SUNY, 2021
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+**
+*/
+
+:- compiler_options([xpp_on]).
+
+#include "standard.h"
+
+:- dynamic json_option/2.
+
+/*
+** Used for conversion of json terms to facts.
+** Different spaces are then used as identifiers
+** to distinguish between facts coming from different documents.
+*/
+:- dynamic json_space/2.
+:- index(json_space/2,trie).
+
+
+:- import
+        warning/1,
+        abort/1
+   from standard.
+:- import bootstrap_package/2 from packaging.
+
+:- import memberchk/2 from basics.
+:- import
+        set_json_option/1,
+        get_json_file/3,
+        get_json_string/3
+   from parson_xsb.
+
+
+:- export
+        parse_json/2,
+        parse_json/3,
+        get_option/2,
+        set_options/1,
+        set_option/1.
+:- export
+        term_to_json/2.
+
+:- export
+        json_space/2,
+        insert_json_space/2,
+        forget_json_spaces/1.
+
+
+%% bootstrap(package-dirname-as-string, package-name-as-symbol).
+%% This also asserts 
+%% package_configuration(dir(PackageName), FullPackageDirname)
+%% some packages use it.
+
+:- bootstrap_package([json,cc], json),
+   [parson_config].
+
+
+%% Make uniform interface to the package
+
+
+%% 3-arg version
+%% deal with pretty(...)
+parse_json(Source,SelectionPathexp,Parsed) :-
+        nonvar(Parsed),
+        Parsed = pretty(PrettyParsed),
+        !,
+        parse_json_aux(Source,SelectionPathexp,pretty(PrettyParsed)).
+parse_json(Source,SelectionPathexp,Parsed) :-
+        parse_json_aux(Source,SelectionPathexp,Parsed).
+
+%% 2-arg version: no selection
+parse_json(Source,Parsed) :- parse_json(Source,'',Parsed).
+
+
+%% get from stdin - must be first; source is a var
+%% Test: see('simple.json'), jasonlib:parse_json(_,X).
+parse_json_aux(Source,SelectionPathexp,Parsed) :-
+        var(Source),
+        atom(SelectionPathexp),
+        !,
+        get_json_file('',Parsed,SelectionPathexp).
+%% get from string
+parse_json_aux(atom(String),SelectionPathexp,Parsed) :-
+        atom(String),
+        atom(SelectionPathexp),
+        !,
+        get_json_string(String,Parsed,SelectionPathexp).
+parse_json_aux(string(String),SelectionPathexp,Parsed) :-
+        atom(String),
+        atom(SelectionPathexp),
+        !,
+        get_json_string(String,Parsed,SelectionPathexp).
+%% get from Web
+parse_json_aux(url(WebDoc),SelectionPathexp,Parsed) :-
+        atom(WebDoc),
+        atom(SelectionPathexp),
+        !,
+        curl:load_page(url(WebDoc),
+                       %% decide which options make sense
+                       [redirect(true),secure(false)],
+                       [_Size,_WebTime,_Redirect],
+                       Document,
+                       Warn),
+        (Warn==[] -> true
+        ;
+            warning(('[json] Warning: while reading ', WebDoc, ': ', Warn))
+        ),
+        get_json_string(Document,Parsed,SelectionPathexp).
+%% get from file
+parse_json_aux(file(Filename),SelectionPathexp,Parsed) :-
+        !,
+        parse_json_aux(Filename,SelectionPathexp,Parsed).
+parse_json_aux(Filename,SelectionPathexp,Parsed) :-
+        atom(Filename),
+        atom(SelectionPathexp),
+        !,
+        get_json_file(Filename,Parsed,SelectionPathexp).
+%% error
+parse_json_aux(Source,SelectionPathexp,_) :-
+        (\+ atom(SelectionPathexp) ->
+            abort(['<JSON parser> invalid selector, ',SelectionPathexp])
+        ; abort(['JSON parser: invalid source specification, ',Source])
+        ).
+        
+
+set_options([]) :- !.
+set_options([H|T]) :-
+        set_option(H),
+        set_options(T).
+
+set_option(Opt) :-
+        standard_option(Opt,StOpt),
+        StOpt = (Name=Val),
+        retractall(json_option(Name,_)),
+        assert(json_option(Name,Val)),
+        (parson_option(Name) -> set_json_option(StOpt)
+        ; true
+        ).
+
+parson_option(duplicate_keys).
+parson_option(flora_mode).
+
+standard_option(Opt=Val,StOpt=StVal) :-
+        ground(Opt=Val),
+        parson_option(Opt),
+        StOpt = Opt,
+        (memberchk(Val,[on,yes,true,1]) -> StVal = true
+        ; memberchk(Val,[off,no,false,fail,0]) -> StVal = false
+        ),
+        !.
+standard_option(Opt,_) :-
+        abort(['JSON parser: invalid option, ',Opt]).
+
+get_option(Name,Val) :-
+        json_option(Name,Val),
+        !.
+get_option(_Name,false).
+
+term_to_json(X,Y) :- term_to_json:term_to_json(X,Y).
+
+insert_json_space(Mod,Oid) :- asserta(json_space(Mod,Oid)).
+forget_json_spaces(Mod) :- retractall(json_space(Mod,_)).

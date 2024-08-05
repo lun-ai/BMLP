@@ -1,0 +1,76 @@
+/* File:      minizinc.P -- top package entry points for Minizinc solvers
+** Author(s): kifer
+** Contact:   xsb-users@lists.sourceforge.net
+** 
+** Copyright (C) The Research Foundation of SUNY, 2019
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+*/
+
+:- import bootstrap_package/2 from packaging.
+:- import
+        mzndebug/1,
+        mzn_exception/1,
+        mzn_info/2,
+        mzn_do/7
+   from xsb2mzn.
+
+:- import term_new_mod/3 from machine.
+
+:- import when/2 from constraintLib.
+
+:- export
+        keep_tmpfiles/0,
+        show_mzn_cmd/0,
+        dbg_clear/0,
+        show/1,
+        delete/1,
+        solve_flex/8,
+        solve/8.
+
+?- bootstrap_package([minizinc], minizinc),
+	[xsb2mzn].
+
+solve(MZNFile,DataFileList,InParams,Solver,NumSolutions,OutTemplate,Result,Exceptions) :-
+        mzn_info(support,yes),
+        mzn_do(MZNFile,DataFileList,InParams,Solver,NumSolutions,OutTemplate,Result1),
+        term_new_mod(usermod,Result1,Result2), %% return terms in usermod
+        Result = Result2,
+        findall(Err,mzn_exception(Err),Exceptions).
+
+%% this delays calling minizinc until in-parameters and out-template are ground.
+%% if they never get ground then minizinc is never called -- similarly to CLPR.
+solve_flex(MZNFile,DataFileList,InParams,Solver,NumSolutions,OutTemplate,Result,Exceptions) :-
+        when((ground(InParams),ground(OutTemplate)),
+             solve(MZNFile,DataFileList,InParams,Solver,NumSolutions,
+                   OutTemplate,Result,Exceptions)).
+
+%% debugging functions
+keep_tmpfiles :- mzndebug(tmpfiles).
+show_mzn_cmd :- mzndebug(shell_cmd).
+dbg_clear :- mzndebug(clear).
+
+%% These allow querying/retracting minizinc results in a way that is
+%% more suitable for systems like Flora-2. Maybe useful for Prolog also.
+show(X) :-
+        compound(X),
+        \+ is_list(X),
+        term_new_mod(minizinc,X,Y),
+        call(Y).
+
+delete(X) :-
+        compound(X),
+        \+ is_list(X),
+        term_new_mod(minizinc,X,Y),
+        retractall(Y).

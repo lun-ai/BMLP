@@ -9,7 +9,7 @@ trap '' HUP INT
 method=$1
 repo=${2}/${3}
 
-for k in 1000 2000 3000 4000 5000
+for k in 1000
 do
   for j in 0.001
   do
@@ -17,13 +17,14 @@ do
 #do
 #  for j in 0.0001 0.001 0.01 0.1 0.5 1
 #  do
-      for i in $(seq 1 10)
+      for i in $(seq 1 1)
       do
+        cur_dir=$(echo "$PWD")
         swipl -s ${repo}/generate_BK.pl -g "generate_background($j,$k),halt" -q
         case $method in
   # BMLP
           bmlp-smp)
-          swipl -s ${repo}/swi.pl -t 'test(rmss)' -q
+          swipl -s ${repo}/swi.pl -t 'test(smp)' -q
           ;;
 #          bmlp-ime)
 #          swipl -s ${repo}/swi.pl -t 'test(ime)' -q
@@ -38,14 +39,14 @@ do
   # B-Prolog
           bpl)
           cd ${repo}
-          ~/workspace/BProlog/bp -s 40000000 -g "consult(b_prolog),compute" | sed -n "4p"
-          cd ../../../../
+          ${cur_dir}/BProlog/bp -s 40000000 -g "consult(b_prolog),compute" | sed -n "4p"
+          (cd ${cur_dir} || exit) > /dev/null
           ;;
   # XSB-Prolog
           xsbpl)
           cd ${repo}
-          ~/workspace/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
-          cd ../../../../
+          ${cur_dir}/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
+          (cd ${cur_dir} || exit) > /dev/null
           ;;
   # Clingo
           clg)

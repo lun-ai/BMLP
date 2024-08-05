@@ -1,0 +1,224 @@
+:- compiler_options([xpp_on]).
+
+#include "xsbpy_defs.h"
+#include "xsb2py_connect_defs.h"
+
+/* 
+init_xsbpy/0 initializes xsbpy, compiling the necessary C files and
+loading the appropriate version of libpython.so.
+
+test_xsbpy/0 runs a very simple test to ensure that Python has been
+linked.
+
+If these are successful the console output should looks fairly similar
+to that included at the end of this file.
+ */
+
+:- export init_xsbpy/1, test_xsbpy/0, add_py_lib_dir/1,py_lib_dirs/1.
+:- export objref/2.
+
+:- import xsb_configuration/2 from xsb_configuration.
+:- import concat_atom/2 from string.
+
+:- import misc_error/1 from error_handler.
+:- import xsb_error_get_message/2 from error_handler.
+:- import shell/1 from shell.
+:- import pyfunc/3 from xsbpy.
+:- import init_python/0 from xsbpym.
+:- import add_lib_dir/1 from consult.
+:- import messageln/1 from standard.
+:- import getenv/2 from machine.
+
+init_xsbpy(Pyversion):-
+    xsb_configuration(configuration,Configuration),
+    (str_sub('windows',Configuration)
+    -> compile_xsbpym_for_windows
+    ;  get_compiler_opts(Pyversion,CompilerOpts,Version),
+       compile([xsbpym],[cc_opts(CompilerOpts),if_needed]),
+       [px_mk_setup_query]
+    ),
+    xsb_configuration(packagesdir, PackDir),
+    concat_atom([PackDir,'/xsbpy'],XSBpyDir),
+    concat_atom([PackDir,'/../lib'],XSBLibDir),
+    concat_atom([PackDir,'/xsbpy/starters'],StarterDir),
+    concat_atom([PackDir,'/xsbpy/px'],PxDir),
+    concat_atom([PackDir,'/xsbpy/test'],TestDir),
+    init_python(),
+    pyfunc('xsbpy/add_python_path',add_python_path(XSBpyDir),_),
+    pyfunc(add_python_path,add_python_path(XSBLibDir),_),
+    pyfunc(add_python_path,add_python_path(StarterDir),_),
+    add_lib_dir(StarterDir),  % starters
+    add_lib_dir(PxDir),       % in case XSB is being called from Python
+    pyfunc(add_python_path,add_python_path(TestDir),_),
+    set_heap_margin(512),   % 4x the amount in v. 4.0
+    messageln(xsbpy_initted_with_python(Version)),
+    !.
+init_xsbpy(Pyversion):-
+    misc_error(['xsbpy did not initialize properly for ',Pyversion]).
+
+compile_xsbpym_for_windows :-
+    getenv('PYTHON_LIBRARY',PyLib),
+%%  e.g. PyLib=  'c:\Users\warren\AppData\Local\Programs\Python\Python39\libs\python3.lib'
+    concat_atom([PythonDir,'\\libs\\',_,'.lib'],PyLib),
+    concat_atom(['/I"',PythonDir,'\\include"'],PyInclude),
+    concat_atom(['/libpath:"',PythonDir,'\\libs"'],PyLibs),
+    compile(xsbpym,[if_needed,cc_opts(PyInclude),ld_opts(PyLibs)]).
+
+test_xsbpy:-
+    catch(test_xsbpy_1,E,(xsb_error_get_message(E,Mess),writeln(Mess))).
+    
+test_xsbpy_1:-
+    xsb_configuration(packagesdir, PackDir),
+%    concat_atom([PackDir,'/xsbpy'],XSBpyDir),
+    concat_atom([PackDir,'/xsbpy/test'],TestDir),
+    pyfunc(add_python_path,add_python_path(TestDir),_),
+    add_lib_dir(TestDir),
+    ensure_loaded(testSuite),
+    concat_atom([TestDir,'/','test_xsbpy_out_new'],TestOut),
+    shell(['rm -f ',TestOut]),
+    tell(TestOut),
+    usermod:testSuite,
+    told,!.
+test_xsbpy_1:- told.
+
+%test_xsbpy_1:-
+%    ensure_loaded(testSuite),
+%    usermod:testSuite.
+
+%    shell(['cp ',XSBpyDir,'/xsbpym.so',' ',TestDir,'xsbpym.so']),
+
+add_py_lib_dir(Dir):- 
+    pyfunc(add_python_path,add_python_path(Dir),_).
+
+py_lib_dirs(List):-
+    pyfunc(xp_utils,python_paths(),List).
+
+% Below:
+% -Wl, Opt passes the option from gcc to the compiler.
+% -l namespec (--library=namespec) adds namespec on list of files to be linked.
+% -L adds a path to be searched.
+% -rpath is the runtime search path.
+
+get_compiler_opts(auto,CompilerOpts,auto(PYTHON_BIN_QUOTED)):-
+%    XSBLIB =  XSBCONFIG_BINDIR_QUOTED,
+%    concat_atom(['\'',XSBLIB,'/libxsb.dylib','\''],LIBXSB_DYLIB),
+    xsb_configuration(os_type,darwin),!,
+    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+    concat_atom(['-I',XSB,'../../emu',                 
+		 ' -I/usr/local/include',' -I',PYTHON_INCLUDE_DIR_QUOTED,
+		 ' -I/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/include',
+		 ' -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include',
+		 ' -I/Library/Developer/CommandLineTools/usr/include',
+%		' -I',PYTHON_INCLUDE_DIR_QUOTED	
+		 ' -L',PYTHON_LIBDIR_QUOTED,' ',
+		' -l',PYTHON_BIN_QUOTED,
+		    ' -g' ],CompilerOpts).
+
+get_compiler_opts(auto,CompilerOpts,auto(PYTHON_BIN_QUOTED)):-
+    xsb_configuration(os_type,'linux-gnu'),!,
+    XSBLIB =  XSBCONFIG_BINDIR_QUOTED,
+    concat_atom(['\'',XSBLIB,'/libxsb.so','\''],LIBXSBSO),
+    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+    concat_atom(['-I',XSB,'../../emu',' -I',PYTHON_INCLUDE_DIR_QUOTED,
+		' -Wl,-rpath=',PYTHON_LIBDIR_QUOTED,',',LIBXSBSO,
+		' -l',PYTHON_BIN_QUOTED,' -L',PYTHON_BIN_QUOTED,	
+% for debugging ' -Wl,--verbose',
+		' -Wl,-rpath=',PYTHON_LIBDIR_QUOTED,' -g' ],CompilerOpts).
+
+
+%get_compiler_opts(auto,CompilerOpts,auto(PYTHON_BIN_QUOTED)):-
+%    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+%    concat_atom(['-I',XSB,'../../emu',' -I',PYTHON_INCLUDE_DIR_QUOTED,
+%%		 ' -l',PYTHON_BIN_QUOTED,' -L',PYTHON_BIN_QUOTED,
+%
+%		' -Wl,-rpath=',PYTHON_LIBDIR_QUOTED,',/home/tswift/xsb-repo/xsb-code/XSB/config/%x86_64-unknown-linux-gnu/bin/libxsb.so',' -l',PYTHON_BIN_QUOTED,
+%		' -L',PYTHON_BIN_QUOTED,	
+%		' -Wl,--verbose',
+%		' -L',PYTHON_BIN_QUOTED,' -g' ],CompilerOpts).
+%		' -Wl,-rpath=',PYTHON_LIBDIR_QUOTED,' -g' ],CompilerOpts).
+
+%Use libpython3.8
+get_compiler_opts(mac38,CompilerOpts,'python3.8'):-
+    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+    concat_atom(['-I',XSB,'../../emu',                 % ,' -H ',' -nostdinc ',
+		 ' -I/usr/local/include',
+		 ' -I/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/include',
+		 ' -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include',
+		 ' -I/Library/Developer/CommandLineTools/usr/include',
+		 ' -I/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/Headers',
+%	       	 ' -Wl,-rpath=','/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/lib/',
+		 ' -L','/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/lib',
+		 ' -l','python3.8',
+		    ' -g' ],CompilerOpts).
+
+set_heap_margin(Kbs):-
+    Amount is Kbs*1024,
+    set_prolog_flag(heap_margin,Amount).
+
+end_of_file.
+
+
+
+%objref(Obj,PYOBJ_PROLOG(R1)):- 
+%    pyfunc(other_tests,read_obj(Obj),R1). 
+
+
+%aida_getenv(Envar,Val):-
+%    getenv(Envar,Val),!.
+%aida_getenv(Envar,_Val):-
+%    existence_error(environment_variable,Envar,aida_getenv,2).
+    
+%teri_test:-
+%    pyfunc('test/tupInList', func(), R1), pyList2prList(R1, Y1),
+%    writeq(Y1),nl,writeln('-------------'),
+%    pyfunc('test/tupInList', func1( ), R2 ), pyTuple2prTuple(R2, Y2 ),
+%    writeq(Y2),nl,writeln('-------------'),
+%    write(Y2).
+
+%init_xsbpy_old:-
+%    aida_getenv('REPO_ROOT',RepoRoot),
+%    concat_atom([RepoRoot,'/XSB_packages/xsbpy'],PackagePath),
+%    add_lib_dir(PackagePath),
+%    aida_getenv('XSB_EXEC',XSB),
+%%    bootstrap_userpackage(PackagePath, xsbpy, xsbpy),
+%    concat_atom(['-I',XSB,'../../emu',' -I/usr/include/python3.7m  -I/usr/include/python3.7',
+%		 ' -lpython3.7m -L/usr/lib/python3.7 -Wl,',
+%		 '-rpath=/usr/lib/python3.7 -lpython3.7m -L/usr/lib/python3.7 -Wl,',
+%		 '-rpath=/usr/lib/python3.7'],CompilerOpts),
+%%    writeln(CompilerOpts),
+%%    consult(xsbpym,[cc_opts(CompilerOpts)]).
+%
+%test_xsbpy_old:- 
+%    aida_getenv('REPO_ROOT',RepoRoot),
+%    concat_atom([RepoRoot,'/XSB_packages/xsbpy'],PackagePath),
+%    shell_to_list(pwd,[[Pwd]],_Err),
+%    cd(PackagePath),
+%    ensure_loaded('test/testSuite'),
+%    usermod:testSuite,
+%    cd(Pwd).
+
+%		 ' -I/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/Headers/cpython',
+%%		 ' -iframework/usr/local/opt/python@3.8/Frameworks/Python -g' ],CompilerOpts).
+%		 ' -iframework/usr/local/opt/python@3.8/Frameworks/Python.framework -g' ],CompilerOpts).
+%		 ' -I/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/include',
+%		 ' -I/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/include/cpython',
+%		 ' -I/usr/local/opt/python@3.8/Frameworks/Python.framework/Versions/Current/include/python3.8',
+
+
+%Use libpython3.7m
+%get_compiler_opts(37,CompilerOpts,'python3.7'):-
+%    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+%    concat_atom(['-I',XSB,'../../emu',' -I/usr/include/python3.7m  -I/usr/include/python3.7',
+%		 ' -lpython3.7m -L/usr/lib/python3.7 -Wl,',
+%		 '-rpath=/usr/lib/python3.7 -lpython3.7m -L/usr/lib/python3.7 -Wl,',
+%		 '-rpath=/usr/lib/python3.7 -g' ],CompilerOpts).
+%
+%%Use libpython3.8
+%get_compiler_opts(38,CompilerOpts,'python3.8'):-
+%    xsb_configuration(config_bindir,Dir),concat_atom([Dir,'/xsb'],XSB),
+%    concat_atom(['-I',XSB,'../../emu',' -I/usr/include/python3.8  -I/usr/include/python3.8',
+%		 ' -lpython3.8 -L/usr/lib/python3.8 -Wl,',
+%		 '-rpath=/usr/lib/python3.8 -lpython3.8 -L/usr/lib/python3.8 -Wl,',
+%		 '-rpath=/usr/lib/python3.8 -g' ],CompilerOpts).
+%
+%

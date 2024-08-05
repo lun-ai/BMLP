@@ -1,0 +1,10 @@
+attic
+build
+dist
+px.egg-info
+pyxsb
+tpx.egg-info
+*.xwam
+*.so
+.ipynb_checkpoints
+px_test_new.txt

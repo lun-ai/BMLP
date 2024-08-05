@@ -1,0 +1,993 @@
+/* File:      proc_files.P
+** Author(s): David S. Warren
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, , 1993-2018
+** 
+** XSB is free software; you can redistribute it and/or modify it under the
+** terms of the GNU Library General Public License as published by the Free
+** Software Foundation; either version 2 of the License, or (at your option)
+** any later version.
+** 
+** XSB is distributed in the hope that it will be useful, but WITHOUT ANY
+** WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE.  See the GNU Library General Public License for
+** more details.
+** 
+** You should have received a copy of the GNU Library General Public License
+** along with XSB; if not, write to the Free Software Foundation,
+** Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: proc_files.P,v 1.10 2012-01-09 21:37:13 dwarren Exp $
+** 
+*/
+
+
+:- comment(load_csv(FileName,PSpec), "loads a comma-separated (csv)
+file, where @var{FileName} is the file to load, @var{PSpec} is either
+Name/Arity or Name(_,_,...,_) of the predicate to load the facts
+into.").
+
+:- mode load_csv(+,?).
+load_csv(FileName,PSpec) :-
+    load_dsv(FileName,PSpec,[]).
+	
+:- mode load_csv(+,?,+).
+load_csv(FileName,PSpec,Options) :-
+    load_dsv(FileName,PSpec,Options).
+
+:- mode load_psv(+,?).
+load_psv(FileName,PSpec) :-
+    load_dsv(FileName,PSpec,[separator="|",order=reverse]).
+
+:- mode load_tsv(+,?).
+load_tsv(FileName,PSpec) :-
+    load_dsv(FileName,PSpec,[separator="\t",order=reverse]).
+
+:- mode read_dsv(+,+,?).
+read_dsv(FileName,Options,Term) :-
+    conset('__errcnt',0),
+    conset('__recsread',0),
+    conset('__linesread',0),
+    functor(Term,Pred,Arity),
+    Term =.. [Pred|Args],
+    open(FileName,read,IStr),
+    call_cleanup(delim_file_record(IStr,Arity,Options,_RecNum,Args),
+		 close(IStr)).
+
+:- comment(load_dsv/3, " @pred{load_dsv(+FileName,+PSpec,+Options)}
+loads a separated field delimited text file into a predicate.  The
+file to be loaded is named @var{FileName}. @var{PSpec} specifies the
+predicate that is to be defined, as either Functor/Arity, or as a
+term, or as an atom.  If it is an atom, then that is used as a unary
+predicate and its only argument is a list of the fields (as atoms) in
+a line.  If it is a term, then its subfields are interpreted as
+defining the types of the fields, with 'atom' (or variable) indicating
+atom, 'integer' indicate integer, 'float' indicating float, 'term'
+indicated a Prolog term, and 'string' indicating that its value should
+be returned as a list of ascii codes.
+
+User can define field conversions for other data types (e.g., date) by
+adding type conversion hooks. See @pred{add_cvt_type_hook/2} and
+@pred{remove_cvt_type_hook/1}.
+
+@var{Options} is a list of options to control the processing. Options
+are:
+@begin{itemize}	   
+
+@item{separator=Sep} indicates that the field separator is specified
+by @var{Sep}.  @var{Sep} can be an atom or a string.  The default is a
+comma (',').
+
+@item{delimiter=Delim} indicates that the field delimiter is specified
+by @var{Delim}.  It must be used to delimit fields that contain
+separators (or newlines). @var{Delim} can be an atom or a string.  The
+default is the double-quote ('""').
+
+@item{titles} indicates that the file contains column titles in the
+initial line(s) of the file, which should be ignored when loading.
+The atom @tt{titles} causes the first line to be skipped.  One can
+also use @tt{titles(N)} or @tt{titles=N} to indicate that @tt{N}
+initial lines to be skipped.
+
+@item{reverse} indicates that the records should be asserted into the
+indicate predicate in reverse order (i.e., using @pred{asserta/1}).
+This can be important for efficiency for certain indexing.
+
+@item{types=TypeList} indicates that the fields in the file should be
+converted to internal values according to the specification in
+@var{TypeList}.  @var{TypeList} is a list of atoms that specifies the
+types of the corresponding fields as follows:
+
+@begin{itemize}
+
+@item{atom} indicates the corresponding field is an atom.
+
+@item{integer} indicates the the corresponding field contains an
+integer and will be converted to an integer in the internal record.
+
+@item{float} indicates the the corresponding field contains a flowting
+point number and will be converted to a float in the internal record.
+
+@item{term} indicates that the corresponding field contains a Prolog
+term, which will be read and converted to a prolog term in the
+internal record.
+
+@item{string} indicates that the corresponding field is to be
+represented internally as a list of ascii codes.
+
+@end{itemize}
+
+@item{strings} indicates that all fields are to be returned as
+strings.  This overrides any @tt{types} specification.
+
+@item{error} indicates problems encountered in loading will cause an
+error to be thrown.  The default is that warnings are given and
+processing continues.
+
+@item{returns=RetSep} indicates that the processing should try to
+recover from newlines embedded in fields.  Normally newlines indicate
+end of line, and a newline in a field (other than the last one) will
+be interpreted as the end of line and thus too few values will be
+found and a warning (or error) will be indicated.  However, with this
+option, if a newline is encounted in a field (before the last one),
+the system will try to read the next line as a continuation of the
+current line and try to recover.  The value @var{RetSup} will be
+considered as replacing the newline in the resulting field value.
+@var{RetSep} must be an atom or a string.  This option can only be
+used with a non-atomic @var{PSpec}, i.e., where the target predicate
+has a fixed arity, greater than 1.
+
+@item{pad=N} (for positive or negative integer @var{N}) can be
+specified.  If N<0, it is assumed that the number of arguments in the
+given template predicate is less than the length of the rows in the
+file by abs(N), so the remaning fields will be thrown out.  If N>0, it
+is assumed that the number of arguments is greater than the number of
+fields by N. (If this option is not given, N is assumed to be 0.)  If
+the number of arguments + N != the number of fields, warnings will be
+issued.
+
+@end{itemize}	   
+").
+
+:- mode load_dsv(+,?,+).
+load_dsv(FileName,PSpec,Options0) :-
+    conset('__errcnt',0),
+    conset('__recsread',0),
+    conset('__linesread',0),
+    (member(order=reverse,Options0) -> Reverse = 1 ; Reverse = 0),
+    process_predspec(PSpec,Options0,Spec,Types,Args),
+    (ground(Types)
+     ->	Options = [types=Types|Options0]
+     ;	Options = Options0
+    ),
+    dynamic(Spec),
+    retractall(Spec),
+    pad_args(Args,Options,NumPad,ArgsPatched),
+    cputime(T0),
+    (var(ArgsPatched)
+     ->	NumFields = 0
+     ;	length(ArgsPatched,NumFields)
+    ),
+    open(FileName,read,IStr),
+    (do_all
+     (NumPad < 0
+      -> null_after(Args,NumFields)
+      ;	 true
+     ),
+     call_cleanup(delim_file_record(IStr,NumFields,Options,_RecNum,ArgsPatched),
+		  load_dsv_cleanup(T0,FileName,IStr,Options)),
+     (Reverse =:= 0
+      -> assertz(Spec),
+	 fail
+      ;	 asserta(Spec),
+	 fail
+     )
+    ).
+
+load_dsv_cleanup(T0,FileName,IStr,Options) :-
+    close(IStr),
+    (member(quiet,Options)
+     ->	true
+     ;	conget('__recsread',RecsRead),
+	time_message(T0,(FileName,' loaded (delimited) ',RecsRead,' records'))
+    ).
+
+
+null_after([],_).
+null_after([Arg|ArgsPatched],NumValFields) :-
+    (NumValFields > 0
+     ->	Num1 is NumValFields - 1,
+        null_after(ArgsPatched,Num1)
+     ;	Arg = 'NULL'(_),
+	null_after(ArgsPatched,NumValFields)
+    ).
+
+process_predspec(PSpec,Options,Spec,Types,Args) :-
+    (atom(PSpec)
+     ->	functor(Spec,PSpec,1),
+	Types = _,
+	arg(1,Spec,Args)
+    ;	((PSpec = Functor/Arity ; PSpec = Module:Functor/Arity),
+	 integer(Arity)
+	 -> (member(module=Module,Options)
+	     -> true
+	     ; Module = usermod
+	     -> true
+	     ;  true
+	    ),
+	    functor(Spec,Module,Functor,Arity),
+	    Types = _
+	;  (PSpec = Module:Spec1
+	   -> term_new_mod(Module,Spec1,Spec2)
+	   ; member(module=Module,Options)
+	     -> term_new_mod(Module,PSpec,Spec2)
+	   ; Spec2 = PSpec
+	   ),
+	   (is_most_general_term(Spec2)
+	     ->	Spec = Spec2,
+		Types = _
+	     ;	Spec2 =.. [_|Types],
+		functor(Spec2,AMod,Functor,Arity),
+		functor(Spec,AMod,Functor,Arity)
+	    )
+	),
+	Spec =.. [_|Args]
+    ).
+
+:- mode cvt_types(+,?,?,?,+).
+cvt_types([],_,[],_,_) :- !.
+cvt_types(_,[],[],_Fields,_Options) :- !,
+    misc_error('[proc_files] Error: internal, too many fields in type conversion.').
+cvt_types([F|Fs],Types,[A|As],Fields,Options) :-
+    (Types = [T|Ts]
+     ->	true
+     ;	T = string		% pad as string
+    ),
+    (var(T)
+     ->	atom_codes(A,F)
+     ;	T == atom
+     ->	atom_codes(A,F)
+     ;	T == integer
+     ->	remove_commas_and_spaces(F,FC),
+	(FC == []
+	 -> A = 0
+	 ;  catch(number_codes(AN,FC),_,fail)
+	 -> A is floor(AN)
+	 ;  cannot_convert_errwarn(T,FC,Options,A)
+	)
+     ; T == float
+     ->	remove_commas_and_spaces(F,FC),
+	(FC == []
+	 -> A = 0.0
+	 ;  catch(number_codes(AN,FC),_,fail)
+	 -> A is float(AN)
+	 ;  cannot_convert_errwarn(T,FC,Options,A)
+	)
+        ;  T == term ->
+	remove_spaces(F,FC),
+	(atom_codes(AF,F),
+	 (FC == [] -> A=''
+	  ;  atom_to_term(AF,A)
+	 ),
+	 !
+	 ;  cannot_convert_errwarn(T,F,Options,A)
+	)
+     ; T == string
+     ->	A = F
+     %% Hook is a binary predicate: +In,-Out
+     ; cvt_type_hook(T,Hook)
+     ->	remove_spaces(F,FC),
+	arg(1,Hook,InVar),
+	arg(2,Hook,OutVar),
+	(var(InVar), var(OutVar), InVar \== OutVar
+	 -> atom_codes(InVar,FC),
+	    (call(Hook)
+	     ->	A=OutVar
+	     ;	cannot_convert_errwarn(T,FC,Options,A)
+	    )
+            %% This is checked at hook insertion time, but just in case
+            ;  misc_error(('[proc_files] type = ', T, ', hook = ', Hook, ': field type conversion hook must have two unbound distinct arguments.'))
+	)
+     ;  misc_error(('Unknown field type ''',T,''' in proc_files load/read operation.')),
+	atom_codes(A,F)
+    ),
+    cvt_types(Fs,Ts,As,Fields,Options).
+
+%% over-general since removes all commas and spaces; could/should
+%% remove only leading/trailing blanks, and commas between triples of
+%% digits (from end/decimal point)
+remove_commas_and_spaces([],[]).
+remove_commas_and_spaces([C|R],NC) :-
+    ((C =:= 0', ; C =:= 0' )
+     ->	NC = NC1
+     ;	NC = [C|NC1]
+    ),
+    remove_commas_and_spaces(R,NC1).
+
+remove_spaces([],[]).
+remove_spaces([C|R],NC) :-
+    (C =:= 0' -> NC = NC1
+     ;	NC = [C|NC1]
+    ),
+    remove_spaces(R,NC1).
+	
+append_fields([],_,L,L) :- !.
+append_fields([Last],Returns,[First|Rest],[NewField|Rest]) :- !,
+    append(Returns,First,NFirst),
+    append(Last,NFirst,NewField).
+append_fields([X|L1],Returns,L2,[X|L3]) :- append_fields(L1,Returns,L2,L3).
+
+:- index atom_codes_list/2-2.
+atom_codes_list([],[]).
+atom_codes_list([Atom|Atoms],[Code|Codes]) :-
+    atom_codes(Atom,Code),
+    atom_codes_list(Atoms,Codes).
+
+:- mode break_into_code_fields(+,?,+,+,+).
+break_into_code_fields(Stream,AllFields,Line,Sep,Delim) :-
+    break_into_code_fields(Stream,AllFields,Line,Sep,Delim,[]).
+
+break_into_code_fields(Stream,AllFields,Line,Sep,Delim,Options) :-
+    (Line == []
+     ->	AllFields = []
+     ;	AllFields = [Field|Fields],
+        next_code_field(Stream,Line,Sep,Delim,Options,Field,Rest),
+        break_into_code_fields(Stream,Fields,Rest,Sep,Delim,Options)
+    ).
+
+next_code_field(Stream,Line,Sep,Delim,Options,Field,Rest) :-
+    (Line == []
+     ->	Field = [], Rest = []
+     ;	Line = [C|Cs],
+        (C == Delim
+         -> delim_parse_quoted(Stream,Cs,Sep,Delim,Options,OField,Flg,Rest),
+	    (var(Flg)  % delimiters OK
+	     ->	Field = OField 
+	     ;	(append(Field,[Delim],OField)
+		 -> true	% ends with delim, assume meant to be delimmed fld
+		 ;  Field = [Delim|OField] % otw initial delim was part of field
+		)
+	    )
+         ;  delim_parse_unquoted(Line,Sep,Field,Rest)
+	)
+    ).
+
+/* Maybe make nondeterministic and if final Delim not followed by Sep,
+then treat as not Delimited, and first internal Sep does the separating */
+
+delim_parse_quoted(Stream,"\r\n",Sep,Delim,Options,[13,10|TRest],Flg,Out):-!,
+    (file_read_line_list(Stream,NextLine)
+     ->	coninc('__linesread'),
+	delim_parse_quoted(Stream,NextLine,Sep,Delim,Options,TRest,Flg,Out)
+     ;	conget('__linesread',LinesRead),
+	(member(error,Options) ->
+            misc_error(('[proc_files] Error: Unexpected end-of-file on line ', LinesRead))
+	 ;  warning(('[proc_files] Warning: Unexpected end-of-file on line ',LinesRead))
+	),
+        TRest=[],
+        Out=[]
+    ).
+delim_parse_quoted(Stream,"\n",Sep,Delim,Options,[10|TRest],Flg,Out):-!,
+    (file_read_line_list(Stream,NextLine)
+     ->	coninc('__linesread'),
+	delim_parse_quoted(Stream,NextLine,Sep,Delim,Options,TRest,Flg,Out)
+     ;	conget('__linesread',LinesRead),
+	(member(error,Options) ->
+            misc_error(('[proc_files] Error: Unexpected end-of-file in delimted field on line ',LinesRead))
+	 ;  warning(('[proc_files] Warning: Unexpected end-of-file in delimted field on line ',LinesRead))
+	),
+	TRest=[],
+	Out=[]
+    ).
+delim_parse_quoted(_,[Delim,13,10],_,Delim,_,[],_,[]):-!.
+delim_parse_quoted(_,[Delim,10],_,Delim,_,[],_,[]):-!.
+delim_parse_quoted(_,[Delim|Sep],Sep,Delim,_,[],_,"\r\n"):-!. % eol without marker (eof), so add it
+delim_parse_quoted(Stream,[Delim,Delim|Rest],Sep,Delim,Options,[Delim|Trest],Flg,Out):-!,
+    delim_parse_quoted(Stream,Rest,Sep,Delim,Options,Trest,Flg,Out).
+delim_parse_quoted(_,[Delim|Next],Sep,Delim,_,[],_,Rest):-
+    append(Sep, Rest, Next), !.
+delim_parse_quoted(Stream,[H|Rest],Sep,Delim,Options,[H|Trest],Flg,Out):-
+    (H =:= Delim
+     ->	%% quietly assume it's NOT a quoted field, but
+        %% an initial quoted item in the field?? Throw error??
+        Flg = 1,
+        delim_parse_unquoted(Rest,Sep,Trest,Out)
+     ;	delim_parse_quoted(Stream,Rest,Sep,Delim,Options,Trest,Flg,Out)
+    ).
+
+delim_parse_unquoted(String,[FSep|RSep],Field,Rest) :-
+    delim_parse_unquoted_1(String,FSep,RSep,Field,Rest).
+
+delim_parse_unquoted_1([],_,_,[],[]).
+delim_parse_unquoted_1([C|Cs],Sep,SepT,Field,Rest) :-
+    (C =:= 0'\r
+     ->	(Cs == "\n"
+	 -> Field = [],
+	    Rest = []
+	 ;  Field = [C|FR],
+	    delim_parse_unquoted_1(Cs,Sep,SepT,FR,Rest)
+	)
+     ;	C =:= 0'\n, Cs == []
+     ->	Field = [],
+	Rest = []
+     ;	Sep =\= C
+     ->	Field = [C|FR],
+	delim_parse_unquoted_1(Cs,Sep,SepT,FR,Rest)
+     ;	(SepT == []
+	 -> (Cs == []
+	     ->	Rest = "\n"
+	     ;	Rest = Cs
+	    ),
+	    Field = []
+	 ;  append(SepT,R,Cs)
+	 -> (R == []
+	     ->	Rest = "\n"
+	     ;	Rest = R
+	    ),
+	    Field = []
+	 ;  Field = [C|FR],
+	    delim_parse_unquoted_1(Cs,Sep,SepT,FR,Rest)
+	)
+    ).
+
+% make separator a code-list
+std_separator(InpSep,Sep) :-
+    (atom(InpSep)
+     ->	atom_codes(InpSep,Sep)
+     ;	integer(InpSep)
+     ->	Sep = [InpSep]
+     ;	Sep = InpSep
+    ).
+
+:- mode save_dsv(+,?,+).
+save_dsv(FileName,PSpec,Options) :-
+    get_opt_params(Options,Sep,Delim,_Titles,_Types,_Returns),
+    save_dsv(FileName,PSpec,Sep,Delim,Options).
+
+
+:- comment(save_dsv/5,
+"@pred{save_dsv(FileName,PSpec,Sep,Delim,Options)} writes out a
+separated/delimited file from an internal predicate.  @var(FileName)
+is the name of the file to create.  @var{PSpec} specifies the
+predicate to use: it may be of the form Pread/Arity or a most-general
+term, or it may be an atom in which case the unary predicate of that
+name is called to get a list of fields to output.  @var{Sep} is a
+separator ascii-code or list of ascii-codes.  Delim is currently
+ignored, but should get used when necessary.  The final argument is
+for future expansion if/when we get options. (It should support types,
+to write the arguments correctly.  In particular it should support the
+term type.  But this is not (yet) done.)  ").
+
+save_dsv(FileName,PSpec,Sep0,Delim0,Options) :-
+    (atom(PSpec)
+     ->	Spec =.. [PSpec,Fields]
+     ;	(PSpec = Pred/Arity
+	 -> length(Fields,Arity),
+	    Spec =.. [Pred|Fields]
+	 ;  Spec = PSpec,
+	    Spec =.. [_|Fields]
+	)
+    ),
+    ((member(outfields=OutFields,Options) ; member(outfields(OutFields),Options)) 
+     ->	true			% list of vars of fields to output
+     ;	OutFields = Fields
+    ),
+    (integer(Sep0) -> Sep = [Sep0] ; Sep = Sep0),
+    (integer(Delim0) -> Delim = [Delim0] ; Delim = Delim0),
+    atom_codes(SepA,Sep), atom_codes(DelimA,Delim),
+    
+    OutFields = [FirstField|RestFields],
+    open(FileName,write,OutStream),
+    (call(Spec),
+     write_field(FirstField,OutStream,SepA,Delim,DelimA),
+     write_fields(RestFields,OutStream,SepA,Delim,DelimA),
+     nl(OutStream),
+     fail
+     ;	
+     true
+    ),
+    close(OutStream).
+
+write_fields([],_Stream,_SepA,_Deelim,_DelimA).
+write_fields([Field|Fields],Stream,SepA,Delim,DelimA) :-
+    write(Stream,SepA),
+    write_field(Field,Stream,SepA,Delim,DelimA),
+    write_fields(Fields,Stream,SepA,Delim,DelimA).
+
+write_field(Field,Stream,SepA,Delim,DelimA) :-
+    (atom(Field)
+     ->	(str_match(DelimA,Field,f,_,_)
+	 -> atom_codes(Field,FieldCodes),
+%	 -> atom_chars(Field,FieldCodes),
+	    write(Stream,DelimA),
+	    put_list(Stream,FieldCodes,Delim),
+	    write(Stream,DelimA)
+	 ;  (str_match(SepA,Field,f,_,_)
+	     ;
+	     str_match('\n',Field,f,_,_)
+	    )
+	 -> write(Stream,DelimA),
+	    write(Stream,Field),
+	    write(Stream,DelimA)
+	 ;  write(Stream,Field)
+	)
+     ;	number(Field)
+     ->	writeq(Stream,Field)
+     ;	write(Stream,DelimA),	% just in case
+	writeq(Stream,Field),
+	write(Stream,DelimA)
+    ).
+
+% Just output code list 
+:- index put_list/2-2.
+put_list(_Stream,[]).
+%put_list(Stream,[C|Cs]) :- integer(C),file_put(Stream,C),put_list(Stream,Cs).
+put_list(Stream,[C|Cs]) :- integer(C),file_put_code(Stream,C),put_list(Stream,Cs).
+%put_list(Stream,[C|Cs]) :- atom(C),file_put_char(Stream,C),put_list(Stream,Cs).
+
+% Output code list doubling occurrences of Delim
+:- index put_list/3-2.
+put_list(_Stream,[],_Delim) :- !.
+put_list(Stream,Field,Delim) :-
+    (append(Delim,Rest,Field)
+     ->	put_list(Stream,Delim),put_list(Stream,Delim)
+%     ;	Field = [C|Rest],integer(C),file_put(Stream,C)
+     ;	Field = [C|Rest],integer(C),file_put_code(Stream,C)
+%     ;	Field = [C|Rest],atom(C),file_put_char(Stream,C)
+    ),
+    put_list(Stream,Rest,Delim).
+
+
+/* this converts to atoms to copy; look into not filling atom table...*/
+:- mode copy_dsv(+,+,+,+).
+copy_dsv(InFileName,NumFields,OutFileName,Options) :-
+    get_opt_params(Options,InSep,InDelim,_Titles,_Types,_Returns),
+    ((member(out_separator=OutSep0,Options) ; member(out_separator(OutSep0),Options))
+     ->	std_separator(OutSep0,OutSep)
+     ;	OutSep = InSep
+    ),
+    ((member(out_delimiter=OutDelim0,Options) ; member(out_delimiter(OutDelim0),Options))
+     ->	std_separator(OutDelim0,OutDelim)
+     ;	OutDelim = InDelim
+    ),
+    atom_codes(OutSepA,OutSep),
+    atom_codes(OutDelimA,[OutDelim]),
+    open(InFileName,read,IStr),
+    open(OutFileName,write,OStr),
+    (do_all
+     call_cleanup(delim_file_record(IStr,NumFields,[strings|Options],_RecNum,Fields),
+		  cleanup_copy_dsv(InFileName,IStr,OutFileName,OStr)),
+     Fields = [FirstField|RestFields],
+     write_code_field(FirstField,OStr,OutSep,OutDelim,OutDelimA),
+     write_code_fields(RestFields,OStr,OutSep,OutSepA,OutDelim,OutDelimA),
+     nl(OStr)
+    ).
+
+cleanup_copy_dsv(InFileName,IStr,OutFileName,OStr) :-
+    close(IStr),
+    close(OStr),
+    write(userout,InFileName),
+    write(userout,' copied to '),
+    writeln(userout,OutFileName).
+
+
+:- comment(load_with_header/2,
+"@pred{load_with_header(+FileNameList,+Options)} loads a set of
+delimited files into memory as Prolog facts.  The files must have
+header lines that indicate the number of fields.  The file name (after
+any suffix is removed) is used as the predicate name into which the
+lines are asserted. @var{Options} contains separator and delimiter
+information (as in @pred{load_dsv/3} and relatives.)  A dynamic
+predicate proc_files:file_header/4 is defined to contain for each
+file, the predicate name, the arity, the list of field names from the
+first line of the file, and the file name.  ").
+
+:- dynamic file_header/4.
+
+:- mode load_with_header(+,+).
+load_with_header(FileNameList,Options) :-
+    (flat_member(FileName,FileNameList),
+     atom_codes(FileName,FileNameCodes),
+     (ll_append(PredNameCodes,[0'.|_],FileNameCodes)
+      -> atom_codes(PredName,PredNameCodes)
+      ;	 PredName = FileName
+     ),
+     
+     open(FileName,read,InStream),
+     (member(quiet,Options)
+      -> true
+      ;	 write(userout,'Loading '),write(userout,FileName),write(userout,'...')
+     ),
+     conset('__rec_cnt',0),
+     retractall(file_header(PredName,_,_,_)),
+     Term =.. [PredName|Fields],
+     
+     call_cleanup(delim_file_record(InStream,0,Options,_RecNum,Fields),
+		  load_with_headers_cleanup(InStream,Options)),
+     (file_header(PredName,_,_,_)
+      -> coninc('__rec_cnt'),
+	 assertz(Term),
+	 fail
+      ;	 functor(Term,PredName,Arity),
+	 functor(MGTerm,PredName,Arity),
+	 dynamic(MGTerm),
+	 retractall(MGTerm),
+	 assertz(file_header(PredName,Arity,Fields,FileName)),
+	 fail
+     )
+     ;	
+     writeln(userout,'Completed.')
+    ).
+
+load_with_headers_cleanup(InStream,Options) :-
+    close(InStream),
+    (member(quiet,Options)
+     ->	true
+     ;	conget('__rec_cnt',NumRecs),
+	write(userout,NumRecs), writeln(userout,' records')
+    ).
+
+flat_member(X,X) :- atomic(X),!, X \== [].
+flat_member(X,[L1|_L2]) :- flat_member(X,L1).
+flat_member(X,[_L1|L2]) :- flat_member(X,L2).
+
+ll_append([X|L1],L2,[X|L3]) :- ll_append(L1,L2,L3).
+ll_append([],L,L).
+
+:- comment(copy_dsv/8, "
+@pred{copy_dsv(InFileName,NumFields,InSep,InDelim,OutFileName,OutSep,OutDelim,Options)}
+copies a delimited file to another delimited file.  It can be used to
+""clean up"" files to change delimiters and put them in a standard
+form.  @var{InFileName} is the name of the input delimited file.
+@var{NumFields} is the number of fields in each line of the input
+file.  @var{InSep} is the list of ascii codes (or single code) that is
+the field separator used in the input file (often comma or pipe.)
+@var{InDelim} is the list of ascii codes (or single code) that is the
+field delimiter used in the input file (often the double quote.)
+@var{OutFileName} is the name of the output file.  @var{OutSep} and
+@var{OutDelim} are the field separator and field delimiter,
+respectively, desired in the output file.  @var{Options} is a list of
+options for the input file similar to those of @pred{load_dsv/5}.").
+
+
+write_code_fields([],_Stream,_Sep,_SepA,_Delim,_DelimA).
+write_code_fields([Field|Fields],Stream,Sep,SepA,Delim,DelimA) :-
+    write(Stream,SepA),
+    write_code_field(Field,Stream,Sep,Delim,DelimA),
+    write_code_fields(Fields,Stream,Sep,SepA,Delim,DelimA).
+
+write_code_field(FieldCodes,Stream,Sep,Delim,DelimA) :-
+    (append(Delim,_,DelimV),append(_,DelimV,FieldCodes)
+     ->	write(Stream,DelimA),
+	put_list(Stream,FieldCodes,Delim),
+	write(Stream,DelimA)
+     ;	append(Sep,_,SepV),append(_,SepV,FieldCodes)
+     ->	write(Stream,DelimA),
+	put_list(Stream,FieldCodes),
+	write(Stream,DelimA)
+     ;	member(0'\n,FieldCodes)
+     ->	write(Stream,DelimA),
+	put_list(Stream,FieldCodes),
+	write(Stream,DelimA)
+     ;	put_list(Stream,FieldCodes)
+    ).
+
+
+pad_args(ArgsIn,Options,N,ArgsOut) :-
+    ((member(pad=N,Options) ; member(pad(N),Options)),
+     integer(N)
+     ->	length(ArgsIn,LenIn),
+	Take is LenIn+N,
+	(N < 0
+	 -> take_upto(Take,ArgsIn,ArgsOut)
+	 ;  N > 0
+	 -> length(PatchArgs,N),
+	    append(ArgsIn,PatchArgs,ArgsOut)
+	 ;  ArgsOut = ArgsIn
+	)
+     ;  ArgsOut = ArgsIn,
+	N = 0
+    ).
+
+pad_fields_with_null(ArgsIn,PadNum,ArgsOut,NullList) :-
+    (PadNum > 0
+     ->	ArgsOut = ArgsIn,
+	make_null_list(PadNum,NullList)
+     ;	NullList = [],
+	length(ArgsIn,ArgsLen),
+	KeepNum is ArgsLen + PadNum, % PadNum is neg
+	take_upto(KeepNum,ArgsIn,ArgsOut)
+    ).
+
+make_null_list(K,List) :-
+    (K > 0
+     ->	List = ['NULL'(_)|List1],
+	K1 is K-1,
+	make_null_list(K1,List1)
+     ;	List = []
+    ).
+
+/*****************************************************/
+
+/* nondeterministically return the records in a file */
+
+:- mode data_records(+,+,?).
+data_records(FileName,Format,RecTerm) :-
+    (Format = sql(_,_)
+     ->	db_records(FileName,Format,RecTerm)
+     ;	file_records(FileName,Format,RecTerm)
+    ).
+
+file_records(FileName,Format,RecTerm) :-
+    (find_file(FileName,Format,AbsFileName)
+     ->	true
+     ;	existence_error(file,FileName,data_records,1)
+    ),
+    open(AbsFileName,read,IStr,[new]),
+    write(userout,'['),
+    write(userout,AbsFileName),
+    writeln(userout,' opened for reading]'),
+    call_cleanup(read_file_records(Format,IStr,RecTerm),close(IStr)).
+
+find_file(FileName,Format,AbsFileName) :-
+    default_suffix(Format,Suffix),
+    search_file(FileName,[[Dir1,FN1,_],[Dir2,FN2,_]],[Suffix,'']),
+    (concat_atom([Dir1,FN1,'.',Suffix],AbsFileName)
+     ;	
+     concat_atom([Dir2,FN2],AbsFileName)
+    ),
+    file_exists(AbsFileName).
+
+default_suffix(read,'P').
+default_suffix(canonical,'P').
+default_suffix(dsv(_),'txt').
+default_suffix(json,'json').
+
+read_file_records(read,IStr,RecTerm) :-
+    repeat,
+    read(IStr,RecTerm0),
+    (RecTerm0 == end_of_file
+     ->	!, fail
+     ;	RecTerm = RecTerm0
+    ).
+read_file_records(canonical,IStr,RecTerm) :-
+    repeat,
+    read_canonical(IStr,RecTerm0),
+    (RecTerm0 == end_of_file
+     ->	!, fail
+     ;	RecTerm = RecTerm0
+    ).
+read_file_records(dsv(Opts),IStr,RecFields) :-
+    length(RecFields,NumFields),
+    delim_file_record(IStr,NumFields,Opts,_RecNum,RecFields).
+read_file_records(json,IStr,RecTerm) :-
+    read_json_pterm(IStr,RecTerm).
+
+get_opt_params(Options,Sep,Delim,Titles,Types,Returns) :-
+    ((member(separator=Sep0,Options) ; member(separator(Sep0),Options))
+     ->	std_separator(Sep0,Sep)
+     ;	Sep = ","
+    ),
+    ((member(delimiter=Delimiter0,Options) ; member(delimiter(Delimiter0),Options))
+     ->	std_separator(Delimiter0,Delimiter),
+	(Delimiter = [Delim]
+	 -> true
+	 ;  misc_error(('[proc_files] Error: Delimiter must be a single character string'))
+	)
+     ;  Delim = 0'"  %"
+    ),
+    (member(titles,Options)
+     ->	Titles = 1
+     ;	(member(titles(Titles),Options) ; member(titles=Titles,Options))
+     ->	true
+     ;	Titles = 0
+    ),
+    ((member(types=Types,Options) ; member(types(Types),Options))
+     ->	true
+     ;	true
+    ),
+    ((member(returns=Returns,Options) ; member(returns(Returns),Options))
+     ->	true
+     ;	Returns = 0
+    ).
+
+db_records(SQL,sql(BindVars,ConnectionStr),RecTerm) :-
+    gensym(db_rec_,Connect),
+    odbc_open(ConnectionStr,Connect),
+    call_cleanup(odbc_sql(Connect,BindVars,SQL,RecTerm),odbc_close(Connect)).
+
+/*******************************************************/
+
+:- mode read_can(+,?).
+read_can(FileName,Term) :-
+    open(FileName,read,IStr),
+    repeat,
+    read_canonical(IStr,Term0),
+    (Term0 == end_of_file
+     ->	!,
+	close(IStr),
+	fail
+     ;	Term = Term0
+    ).
+
+:- mode read_pro(+,?).
+read_pro(FileName,Term) :-
+    open(FileName,read,IStr),
+    repeat,
+    read(IStr,Term0),
+    (Term0 == end_of_file
+     ->	!,
+	close(IStr),
+	fail
+     ;	Term = Term0
+    ).
+
+/*********************************************************/
+
+delim_file_record(InStream,NumFields,Options,RecNum,Fields) :-
+    get_opt_params(Options,Sep,Delim,Titles,Types,Returns),
+    (member(strings,Options) -> Strings = 1 ; Strings = 0),
+    (Returns =:= 0  % bug in how returns parameter is handled....
+     ->	delim_file_process(InStream,Sep,Delim,Titles,Options,RecNum,CodeFields_aux)
+     ;	delim_file_process_fixed(InStream,NumFields,Sep,Delim,Returns,Titles,Options,RecNum,CodeFields_aux)
+    ),
+    length(CodeFields_aux,ActNum),
+    (NumFields > 0
+     ->	(ActNum =:= NumFields
+	 -> CodeFields=CodeFields_aux,
+	    DesiredNum = ActNum,
+	    NullFields = []
+	 ;  coninc('__errcnt',ECnt),
+	    (ECnt < 10
+	     ->	conget('__linesread',LinesRead), % deal with wrong number of args
+		write(user_error,'[proc_files] Warning: Wrong number of fields in record on line '),
+		write(user_error,LinesRead),
+		write(user_error,'; '),
+		write(user_error,ActNum),
+		write(user_error,' read, expected '),
+		write(user_error,NumFields),
+		(member(error,Options)
+		 -> nl(user_error),
+		    misc_error(('[proc_files] Error: Wrong number of fields in record on line ', LinesRead))
+		 ;  (NumFields>ActNum
+		     ->	writeln(user_error,'; extra fields padded with ''NULL''(_)')
+		     ;	writeln(user_error,'; extra fields ignored')
+		    )
+		)
+	     ; ECnt =:= 10
+	     ->	writeln(user_error,'[proc_files] Warning: More records with wrong numbers of fields ...')
+	     ;	true
+	    ),
+	    PadNum is NumFields-ActNum,
+	    %% better to trancate here, but return padding as extra list appended after other processing.
+	    pad_fields_with_null(CodeFields_aux,PadNum,CodeFields,NullFields),  
+	    DesiredNum = NumFields
+	)
+     ;	NullFields = [],
+	CodeFields=CodeFields_aux,
+	DesiredNum = ActNum
+    ),
+    length(Fields,DesiredNum),
+    (Strings =:= 1		% wants all strings, overrides types
+     ->	(NullFields == []
+	 -> Fields = CodeFields
+	 ;  append(CodeFields,NullFields,Fields)
+	)
+     ;	(nonvar(Types)
+	 -> cvt_types(CodeFields,Types,Fields0,CodeFields,Options)
+	 ;  atom_codes_list(Fields0,CodeFields) % convert all to atoms
+	),
+	(NullFields == []
+	 -> Fields = Fields0
+	 ;  append(Fields0,NullFields,Fields)
+	)
+    ).
+
+:- comment(delim_file_process_fixed/9, "If line is too short, assume
+it is a return in the middle of a field, and read the next line and
+append it. Used if Options contains 'returns'.").
+
+:- mode delim_file_process_fixed(+,+,+,+,+,+,+,?,?).
+delim_file_process_fixed(InStream,NumFields,Sep,Delim,Return,Titles,Options,RecNum,CodeFields) :-
+    get_max_int(Max),
+    for(RecNum,1,Max),
+    delim_file_process_fixed(InStream,Sep,Delim,Return,Options,NumFields,[],CodeFields),
+    (CodeFields == end_of_file
+     ->	!,
+	NumRecs is RecNum-1,
+	conset('__recsread',NumRecs),
+	fail
+     ;	RecNum > Titles
+    ).
+
+:- table get_max_int/1.
+get_max_int(Int) :-
+    xsb_configuration(word_size,WSA),
+    atom(WSA),
+    atom_codes(WSA,WSC),
+    number_codes(WSN,WSC),
+    Int0 is floor(2 ** (WSN-2)),
+    Int is (Int0 - 1) + Int0.
+
+delim_file_process_fixed(Stream,Sep,Delim,Returns,Options,NumFields,PrevFields,Fields) :-
+    (file_read_line_list(Stream,List)
+     ->	coninc('__linesread'),
+	break_into_code_fields(Stream,CodeFields,List,Sep,Delim,Options),
+	(NumFields > 0
+	 -> length(CodeFields,Len),
+	    (Len < NumFields
+	     ->	append_fields(PrevFields,Returns,CodeFields,NewFields),
+		NNumFields is NumFields - Len + 1,
+		delim_file_process_fixed(Stream,Sep,Delim,Returns,Options,NNumFields,NewFields,Fields)
+	     ;	append_fields(PrevFields,Returns,CodeFields,Fields) % caller deals if too many
+	    )
+	    ;  Fields = CodeFields
+	)
+     ;  fail
+    ).
+
+:- mode delim_file_process(+,+,+,+,+,?,?).
+delim_file_process(InStream,Sep,Delim,Titles,Options,RecNum,CodeFields) :-
+    get_max_int(Max),
+    for(RecNum,1,Max),
+    (file_read_line_list(InStream,CList) ->
+	coninc('__linesread'),
+	RecNum > Titles,
+	break_into_code_fields(InStream,CodeFields,CList,Sep,Delim,Options)
+     ;	!,
+	NumRecs is RecNum-1,
+	conset('__recsread',NumRecs),
+	fail
+    ).
+
+
+:- dynamic cvt_type_hook/2.
+
+:- comment(remove_cvt_type_hook/1, "@pred{remove_cvt_type_hook(+Type)}
+removes type conversion hook associated with @var{Type}.
+If no hook is associated with @var{Type}, succeeds silently.").
+:- mode remove_cvt_type_hook(+).
+remove_cvt_type_hook(Type) :- retractall(cvt_type_hook(Type,_)).
+
+:- comment(add_cvt_type_hook/2, " @pred{add_cvt_type_hook(+Type,+Hook)}
+adds type conversion hook for (user-defined) field type @var{Type}.
+@var{Hook} must be a predicate with two or more arguments with
+arguments 1 and 2 being unbound and distinct. For instance,
+a hook could be a predicate of the form @pred{convert_date(+InField,-OutField)}.
+If a field declared as being of type @var{Type} is encountered, @var{Hook}
+will be called to convert the field according to the supplied hook-predicate.
+If a hook associated with @var{Type} already exists, an error is issued.").
+:- mode add_cvt_type_hook(+,+).
+add_cvt_type_hook(Type,Hook) :-
+        (cvt_type_hook(Type,_) ->
+            misc_error(('[proc_files] conversion hook for type ', Type, ' already exists. Remove it prior to changing.'))
+        %% Can use hooks for non-atomic types
+        %%; \+ atom(Type) ->
+        %%  misc_error(('[proc_files] ', Type, ': field type must be an atom.'))
+        ; compound(Hook), Hook =.. [_F,A1,A2|_], var(A1), var(A2), A1 \== A2
+        -> fail
+        ;   misc_error(('[proc_files] type = ', Type, ', hook = ', Hook, ': field type conversion hook must have two unbound distinct arguments.'))
+        ).
+        
+add_cvt_type_hook(Type,Hook) :-
+        asserta(cvt_type_hook(Type,Hook)).
+
+
+cannot_convert_errwarn(Type,Item,Options,ItemOut) :-
+        write(user_error,'\n[proc_files] Warning: Cannot convert '),
+        write(user_error,' to '),
+        write(user_error,Type),
+        write(user_error, ': "'),
+        atom_codes(ItemOut,Item),
+        write(user_error, ItemOut),
+        write(user_error,'" on line '),
+        conget('__linesread',LinesRead),
+        write(user_error,''(LinesRead)),
+        nl(user_error),
+        (member(error,Options)
+        -> misc_error(('[proc_files] Error: Cannot convert to ',
+                       Type, ': "',ItemOut, '" on line ', LinesRead))
+        ;	true
+        ),
+        writeln(user_error,'\tConverting to atom instead').

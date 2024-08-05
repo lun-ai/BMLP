@@ -1,0 +1,169 @@
+/* File: db_interface.P
+** Author: Saikat Mukherjee
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 2002-2006
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+*/
+
+/*
+** Prolog interface to connect to a database. This layer will contact the  
+** driver manager for furthur processing. 
+*/
+
+:- compiler_options([xpp_on]).
+
+#define DB_INTERFACE_TERM_SYMBOL   '\177\'
+
+#include "char_defs.h"
+
+:- import file_read_canonical/3 from machine.
+:- import length/2 from basics.
+:- import term_to_atom/3 from string.
+
+%% opening connection to the database
+
+db_connect(Handle, Driver, Server, Database, User, Password) :- 
+	(openConnection(Handle, Driver, Server, Database, User, Password)
+	-> true
+	; 
+	    exception(Number, Mesg),
+	    throw(dbdrivers_error(Number, Mesg))
+	).
+
+db_connect(Handle, Driver, Dsn, User, Password) :-
+	(openConnection(Handle, Driver, '', Dsn, User, Password) -> true
+	; 
+	    exception(Number, Mesg),
+	    throw(dbdrivers_error(Number, Mesg))
+	).
+
+%% closing connection to the database 
+
+db_disconnect(Handle) :- 
+	(closeConnection(Handle) -> true
+	; 
+	    exception(Number, Mesg),
+	    throw(dbdrivers_error(Number, Mesg))
+	).
+
+%% direct querying
+
+db_query(Connhandle, QueryHandle, SQLQueryList, ReturnList) :-
+        (\+is_list(ReturnList) ->
+            throw(dbdrivers_error(0, 'db_query: argument 4 (results) must be a list'))
+        ; true
+        ),
+	(length(ReturnList, N), length(List, N), 
+	    stringify_compound_terms(SQLQueryList, CanSQLQueryList),
+	    queryConnection(Connhandle, QueryHandle, CanSQLQueryList, List)
+	-> db_term(ReturnList, List)
+	;
+	    (exception(Number, Mesg)
+	    ->  db_statement_close(QueryHandle),
+		throw(dbdrivers_error(Number, Mesg))
+	    ;
+		fail)
+	).
+
+db_query(Connhandle, QueryHandle, SQLQueryList, ReturnList) :-
+        (moreResults(QueryHandle)
+	-> db_query(Connhandle, QueryHandle, SQLQueryList, ReturnList)
+	;
+	    fail
+	).
+
+
+%% prepared statements
+
+db_prepare(ConnHandle, QueryHandle, SQLQueryList) :-
+	(stringify_compound_terms(SQLQueryList, CanSQLQueryList),
+	 prepareStatement(ConnHandle, QueryHandle, CanSQLQueryList)
+	-> true
+	;
+	    exception(Number, Mesg),
+	    throw(dbdrivers_error(Number, Mesg))
+	).
+
+db_prepare_execute(QueryHandle, BindList, ReturnList) :-
+	(length(ReturnList, N), length(List, N),
+	    stringify_compound_terms(BindList, CanBindList), 
+	    executePreparedStatement(QueryHandle, CanBindList, List)
+	-> db_term(ReturnList, List)
+	;
+	    (exception(Number, Mesg)
+	    -> throw(dbdrivers_error(Number, Mesg))
+	    ;
+		fail)
+	).
+
+db_prepare_execute(QueryHandle, BindList, ReturnList) :-
+        (moreResults(QueryHandle)
+	-> db_prepare_execute(QueryHandle, BindList, ReturnList)
+	;
+	    fail
+	).
+
+
+%% closing statements
+
+db_statement_close(QueryHandle) :-
+	(closeStatement(QueryHandle)
+	-> true
+	; 
+	    exception(Number, Mesg),
+	    throw(dbdrivers_error(Number, Mesg))
+	).
+
+
+%% term predicates
+
+db_term([], []).
+
+db_term([X|ReturnListTail], [term(Y)|ListTail]):-
+	!,
+	open(atom(Y), read, IO), file_read_canonical(IO, X, _), 
+	close(IO),
+	db_term(ReturnListTail, ListTail).
+
+db_term([X|ReturnListTail], [X|ListTail]) :-
+	db_term(ReturnListTail, ListTail).
+
+stringify_compound_terms([], []).
+
+stringify_compound_terms([X|List], [Z|CanonicalList]) :-
+        (X == 'NULL'(_) -> Z = 'NULL' %% 'NULL'(_) is the database NULL
+	; (compound(X) ; X == []) ->
+	    term_to_atom(X, Y, [ignore_ops(canonical),quoted(true)]),
+	    atom_concat(DB_INTERFACE_TERM_SYMBOL,Y,Z1),
+            escape_single_quotes(Z1,Z)
+	; Z = X
+	),
+	stringify_compound_terms(List, CanonicalList).
+
+escape_single_quotes(In, Out) :-
+        atom_codes(In,InL),
+        escape_single_quotes_in_list(InL,OutL),
+        atom_codes(OutPre,[CH_QUOTE|OutL]),
+        atom_concat(OutPre,'''',Out).
+escape_single_quotes_in_list([],[]) :- !.
+escape_single_quotes_in_list([CH_QUOTE|Rest], [CH_QUOTE,CH_QUOTE|RestConverted]) :-
+	!,
+	escape_single_quotes_in_list(Rest,RestConverted).
+escape_single_quotes_in_list([CH_BACKSLASH|Rest], [CH_BACKSLASH,CH_BACKSLASH|RestConverted]) :-
+	!,
+	escape_single_quotes_in_list(Rest,RestConverted).
+escape_single_quotes_in_list([Ch|Rest],[Ch|RestConverted]) :-
+	escape_single_quotes_in_list(Rest,RestConverted).

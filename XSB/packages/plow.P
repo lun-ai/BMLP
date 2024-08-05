@@ -1,0 +1,31 @@
+/* File: plow.P 
+** 
+** Author(s): Swift 
+** 
+*/
+
+:- import bootstrap_package/2 from packaging.
+
+:- bootstrap_package('plow', plow), load_or_install_plow.
+
+load_or_install_plow:- 
+	(file_exists('pita/pita_int.P') -> 
+	    [pita]
+	  ; abort('XSB must be configured with PITA to use plow.') ),
+	(file_exists('plow') -> 
+	    load_plow
+	  ; install_plow).
+
+load_plow:- [tnorm].
+
+install_plow:- 
+	shell('git clone https://github.com/theresasturn/plow.git',Ret),
+	(Ret = 0 -> 
+	    true
+	  ; abort('Could not clone plow from https://github.com/theresasturn/plow.git') ),
+	shell('mv plow/interp/tnorm.pl plow/tnorm.pl'),
+	load_plow.
+
+    
+
+

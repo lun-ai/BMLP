@@ -1,0 +1,368 @@
+tc_rep_max interrupt
+tc_rep_max interrupt
+tc_rep_max interrupt
+tc_rep_max interrupt
+finished_tc_rep_max
+== test_deref OK
+== test_update 1 OK
+== test_update 2 OK
+== test_unify OK
+Var's attribute = v(1)
+Value = 5
+== test_attv_interrupt OK
+Var's attribute = v(12)
+Value = 7
+disjunct_A
+== test_attv_disj_interrupt OK
+disjunct_B
+== test_attv_disj_interrupt OK
+Attribute = v(11)
+Attribute = v(22)
+== test_implict_unify OK
+== test_cut1 SUCCEEDED
+Var's attribute = v(30)
+Value = 2
+== test_cut2 SUCCEEDED
+PASSED attv_test!
+#6 heap bot old 0x7f6a493c8010 new 0x7f6a47503010
+#6 heap bot old 0x7f6a47503010 new 0x7f6a45502010
+starting now
+------------ command: arity 1 -------------
+?- px_test:win(0)
+
+   TV = Undefined
+
+?- px_test:one_ary_fail(p)
+
+   TV = False
+
+?- px_test:instan(b)
+
+   TV = False
+
+----------- command arity 0 --------------
+?- px_test:zero_ary_true()
+
+   TV = True
+
+?- px_test:zero_ary_fail()
+
+   TV = False
+
+?- px_test:zero_ary_undef()
+
+   TV = Undefined
+
+----------- query: arity 1 --------------
+?- px_test:one_ary_undef(Answer).
+
+   Answer  = b
+   TV = Undefined
+
+?- px_test:instan(Answer).
+
+   Answer  = a
+   TV = True
+
+?- px_test:one_ary_fail(Answer).
+
+   Answer  = None
+   TV = False
+
+?- px_test:return_tuple(Answer).
+
+   Answer  = ([1, 'a', ('a',)], ('b', 'c', 'd'), ())
+   TV = True
+
+?- px_test:return_term(Answer).
+
+   Answer  = ('plgTerm', 'p', [1, 'a', ('plgTerm', 'f', 'a')], ('plgTerm', 'g', 'b'))
+   TV = True
+
+------------ query: arity 2 -------------
+?- basics:reverse(([1, 2, 3, {'a': {'b': 'c'}}],),Answer).
+
+   Answer  = [{'a': {'b': 'c'}}, 3, 2, 1]
+   TV = True
+
+?- string:concat_atom((['a', 'b', 'c', 'd', 'e', 'f', 'g'],),Answer).
+
+   Answer  = abcdefg
+   TV = True
+
+------------ query: arity 3 -------------
+?- basics:append(([1, 2], [3, 4]),Answer).
+
+   Answer  = [1, 2, 3, 4]
+   TV = True
+
+----------- testing interrupts --------------
+----------- done with test_cmd_query --------------
+?- px_comp(px_test:test_comp(_),Answer).
+     [
+      ((e),2),
+      ((e),2),
+      ((d),1),
+      ((c),1),
+      ((b),1),
+      ((a),1) 
+     ]
+------------------------
+?- px_comp(px_test:test_comp(e,_),Answer).
+     [
+      ((5),2),
+      ((5),2) 
+     ]
+------------------------
+{'vars': 2}
+?- px_comp(px_test:test_comp(_,_),Answer).
+     [
+      ((e,5),2),
+      ((e,5),2),
+      ((d,4),1),
+      ((c,3),1),
+      ((b,2),1),
+      ((a,1),1) 
+     ]
+------------------------
+{'truth_vals': 4}
+?- px_comp(px_test:test_comp(_),Answer).
+     [
+      ((e),2),
+      ((e),2),
+      ((d),1),
+      ((c),1),
+      ((b),1),
+      ((a),1) 
+     ]
+------------------------
+{'set_collect': True}
+?- px_comp(px_test:test_comp(_),Answer).
+     {
+      ((d),1),
+      ((a),1),
+      ((c),1),
+      ((e),2),
+      ((b),1) 
+     }
+------------------------
+{'set_collect': True}
+?- px_comp(px_test:test_comp(e,_),Answer).
+     {
+      ((5),2) 
+     }
+------------------------
+{'vars': 2, 'set_collect': True}
+?- px_comp(px_test:test_comp(_,_),Answer).
+     {
+      ((e,5),2),
+      ((d,4),1),
+      ((b,2),1),
+      ((a,1),1),
+      ((c,3),1) 
+     }
+------------------------
+{'truth_vals': 1}
+?- px_comp(px_test:test_comp(_),Answer).
+     [
+      ((e),[unk(something_else)]),
+      ((e),[unk(something)]),
+      ((d),[]),
+      ((c),[]),
+      ((b),[]),
+      ((a),[]) 
+     ]
+------------------------
+{'truth_vals': 1}
+?- px_comp(px_test:test_comp(e,_),Answer).
+     [
+      ((5),[unk(something_else)]),
+      ((5),[unk(something)]) 
+     ]
+------------------------
+{'vars': 2, 'truth_vals': 1}
+?- px_comp(px_test:test_comp(_,_),Answer).
+     [
+      ((e,5),[unk(something_else)]),
+      ((e,5),[unk(something)]),
+      ((d,4),[]),
+      ((c,3),[]),
+      ((b,2),[]),
+      ((a,1),[]) 
+     ]
+------------------------
+{'truth_vals': 2}
+?- px_comp(px_test:test_comp(_),Answer).
+     [
+      (e),
+      (e),
+      (d),
+      (c),
+      (b),
+      (a) 
+     ]
+------------------------
+{'truth_vals': 2}
+?- px_comp(px_test:test_comp(e,_),Answer).
+     [
+      (5),
+      (5) 
+     ]
+------------------------
+{'vars': 2, 'truth_vals': 2}
+?- px_comp(px_test:test_comp(_,_),Answer).
+     [
+      (e,5),
+      (e,5),
+      (d,4),
+      (c,3),
+      (b,2),
+      (a,1) 
+     ]
+------------------------
+?- px_comp(px_test:table_comp(_),Answer).
+     [
+      ((e),2),
+      ((e),2),
+      ((d),1),
+      ((c),1),
+      ((b),1),
+      ((a),1) 
+     ]
+------------------------
+?- px_comp(px_test:table_comp(e,_),Answer).
+     [
+      ((5),2),
+      ((5),2) 
+     ]
+------------------------
+{'vars': 2}
+?- px_comp(px_test:table_comp(_,_),Answer).
+     [
+      ((e,5),2),
+      ((e,5),2),
+      ((d,4),1),
+      ((c,3),1),
+      ((b,2),1),
+      ((a,1),1) 
+     ]
+------------------------
+{'truth_vals': 4}
+?- px_comp(px_test:table_comp(e,_),Answer).
+     [
+      ((5),2),
+      ((5),2) 
+     ]
+------------------------
+{'set_collect': True}
+?- px_comp(px_test:table_comp(_),Answer).
+     {
+      ((d),1),
+      ((a),1),
+      ((c),1),
+      ((e),2),
+      ((b),1) 
+     }
+------------------------
+{'set_collect': True}
+?- px_comp(px_test:table_comp(e,_),Answer).
+     {
+      ((5),2) 
+     }
+------------------------
+{'vars': 2, 'set_collect': True}
+?- px_comp(px_test:table_comp(_,_),Answer).
+     {
+      ((e,5),2),
+      ((d,4),1),
+      ((b,2),1),
+      ((a,1),1),
+      ((c,3),1) 
+     }
+------------------------
+{'truth_vals': 1}
+?- px_comp(px_test:table_comp(_),Answer).
+     [
+      ((e),[unk(something_else)]),
+      ((e),[unk(something)]),
+      ((d),[]),
+      ((c),[]),
+      ((b),[]),
+      ((a),[]) 
+     ]
+------------------------
+{'truth_vals': 1}
+?- px_comp(px_test:table_comp(e,_),Answer).
+     [
+      ((5),[unk(something_else)]),
+      ((5),[unk(something)]) 
+     ]
+------------------------
+{'vars': 2, 'truth_vals': 1}
+?- px_comp(px_test:table_comp(_,_),Answer).
+     [
+      ((e,5),[unk(something_else)]),
+      ((e,5),[unk(something)]),
+      ((d,4),[]),
+      ((c,3),[]),
+      ((b,2),[]),
+      ((a,1),[]) 
+     ]
+------------------------
+{'truth_vals': 2}
+?- px_comp(px_test:table_comp(_),Answer).
+     [
+      (e),
+      (e),
+      (d),
+      (c),
+      (b),
+      (a) 
+     ]
+------------------------
+{'truth_vals': 2}
+?- px_comp(px_test:table_comp(e,_),Answer).
+     [
+      (5),
+      (5) 
+     ]
+------------------------
+{'vars': 2, 'truth_vals': 2}
+?- px_comp(px_test:table_comp(_,_),Answer).
+     [
+      (e,5),
+      (e,5),
+      (d,4),
+      (c,3),
+      (b,2),
+      (a,1) 
+     ]
+------------------------
+test_iteration_cmd(200000) succeeded
+# Time: 0.40072154998779297
+
+test_iteration_nondet(200000) succeeded
+# Time: 0.41461920738220215
+
+test_iteration_query(200000) succeeded
+# Time: 0.44420552253723145
+
+py_to_xsb_list_xfer succeded: 1000000
+# Time: 0.07384276390075684
+
+xsb_to_py_list_xfer succeded: 1000000
+# Time: 0.0988006591796875
+
+----------- undef error --------------
+?- nomod:nopred((1,),Answer).
+
+Exception Caught from XSB: 
+      ++Error[XSB/Runtime/P]: [Existence (No predicate :(usermod,/(nopred,2)) exists)] 
+
+----------- user file error --------------
+?- px_test:throw_an_error(('here is an error thrown from Prolog',),Answer).
+
+Exception Caught from XSB: 
+      ++Error[XSB/Runtime/P]: [Miscellaneous] here is an error thrown from Prolog
+
+XSB has been closed

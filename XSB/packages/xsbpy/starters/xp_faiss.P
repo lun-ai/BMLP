@@ -1,0 +1,134 @@
+
+:- export faissInit/2,xq_num/1,
+          get_k_nn/3, test_k_nn/2, time_k_nn/2,
+          threshold_neighbors/3, test_thresh/2, time_thresh/2,
+	  make_vector_graph/1, write_vector_graph/2, vector_edge/3.
+
+:- import lazy_messageln/1,lazy_writeln/2,lazy_writeln/1 from standard.
+:- import pyfunc/3 from xsbpy.
+:- import between/3,length/2 from basics.
+
+:- dynamic xq_num/1.
+
+:- dynamic vector_edge_raw/3.
+:- index(vector_edge_raw/3,[1,2]).
+
+% Initialization
+faissInit(XbFile,Dim):-
+    retractall(xq_num(_)),
+    walltime(Before1),
+    pyfunc(xp_faiss,create_index_from_file(XbFile,Dim),_Index), % index database vectors
+    walltime(After1),
+    XbTime is After1 - Before1,
+    lazy_messageln(['Time to create index (xb): ',XbTime,' secs']),
+    pyfunc(xp_faiss_numpy,loadtxt(XbFile),Len), % load query vectors
+    retractall(xq_num(_)),
+    assert(xq_num(Len)),
+    walltime(After2),XqTime is After2 - After1,
+    lazy_messageln(['Time to init ',Len,' query vectors (xq): ',XqTime]).
+
+%----------------
+% knn: pred, timing and test
+
+%:- table get_k_nn/3.
+get_k_nn(Node,K,O):-
+    pyfunc(xp_faiss,get_k_nearest_neighbors_to_node(Node,K),O).
+
+test_k_nn(N,K):-
+    between(0,N,Node),
+    get_k_nn(Node,K,O),
+    lazy_writeln(['nearest ',K,' neighbors for ',Node,' : ',O]),
+    fail.
+test_k_nn(_N,_K).
+
+time_k_nn(N,K):-
+    walltime(Before),
+    time_k_nn_1(N,K),
+    walltime(After),
+    Time is After - Before,
+    lazy_writeln([time_k_nn(N,K),' ran in ',Time,' secs']).
+
+time_k_nn_1(N,K):-
+    between(0,N,Node),
+    get_k_nn(Node,K,_O),
+    writeln(finished(Node)),
+    fail.
+time_k_nn_1(_N,_K).
+
+%----------------
+% threshold query: pred, timing and test
+
+threshold_neighbors(Node,Threshold,Neighbors):-
+    pyfunc(xp_faiss,get_threshold_neighbors_to_node(Node,Threshold),Neighbors).
+
+test_thresh(N,Thresh):-
+    between(0,N,Node),
+    threshold_neighbors(Node,Thresh,Out),
+    Out = ''(_,Nodes),length(Nodes,NodeLen),
+    lazy_writeln(['threshold  ',Thresh,' neighbors for ',Node,' : ',NodeLen]),
+    fail.
+test_thresh(_N,_K).
+
+time_thresh(N,Thresh):-
+    walltime(Before),
+    time_thresh_1(N,Thresh),
+    walltime(After),
+    Time is After - Before,
+    lazy_writeln([time_thresh(N,Thresh),' ran in ',Time,' secs']).
+
+time_thresh_1(N,Thresh):-
+    between(0,N,Node),
+    threshold_neighbors(Node,Thresh,Out),
+    Out = ''(_,Nodes),length(Nodes,_NodeLen),
+%    lazy_writeln(['threshold  ',Thresh,' neighbors for ',Node,' : ',NodeLen]),
+    fail.
+time_thresh_1(_N,_K).
+
+%----------------
+
+make_vector_graph(K):-
+    retractall(vector_edge_raw(_,_,_)),
+    xq_num(Num),Num1 is Num - 1,
+    between(0,Num1,Node),
+    assert_adjacency(Node,K),
+    (Node mod 1000 =:= 0 -> writeln(make_vector_graph_finished(Node)) ; true ),
+    fail.
+make_vector_graph(_Dist).
+    
+vector_edge(X,Y,W):- vector_edge_raw(X,Y,W).
+vector_edge(X,Y,W):- vector_edge_raw(Y,X,W).
+
+assert_vector_edge_raw(X,Y,W):-
+    \+ vector_edge_raw(Y,X,W),
+    asserta(vector_edge_raw(X,Y,W)).
+   
+assert_adjacency(Node,K):-
+    get_k_nn(Node,K,''(Dists,Nodes)),
+    double_member((N,Dist),Nodes,Dists),
+    Node \== N,
+    assert_vector_edge_raw(Node,N,Dist),
+    fail.
+assert_adjacency(_Node,_K).
+
+double_member((X,Y),[X|_],[Y|_]).
+double_member((X,Y),[_|One],[_|Two]):- 
+    double_member((X,Y),One,Two).
+
+%----------------
+write_vector_graph(File,String):-
+    open(File,write,Str),
+    lazy_writeln(Str,['% ',String]),
+    write_vector_graph_1(Str),
+    close(Str).
+
+write_vector_graph_1(Str):-
+    writeln(Str,':- compiler_options([dynamic([canonical(yes),ordering(a),modile(vector_graph)])]).'),
+    writeln(Str,:-(export(/(vector_edge_raw,3)))),
+    writeln(Str,':-(index(/(vector_edge_raw,3),[1,2])).'),
+    vector_edge_raw(X,Y,Z),
+    write(Str,vector_edge_raw(X,Y,Z)),writeln(Str,'.'),
+    fail.
+write_vector_graph_1(_Str).
+
+
+

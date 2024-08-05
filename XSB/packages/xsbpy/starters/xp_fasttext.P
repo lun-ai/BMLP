@@ -1,0 +1,17 @@
+:- export load_fasttext_model/2,
+   get_word_vec/3,cosine_similarity/3,get_nearest_neighbors/3.
+:- import pyfunc/3 from xsbpy.
+
+% convenience predicates
+
+load_fasttext_model(BinPath,Name):-
+    pyfunc(xp_fasttext,load_model(BinPath,Name),_).
+
+get_word_vec(Name,Word,Vec):-
+    pyfunc(xp_fasttext,get_word_vec(Name,Word),Vec).
+
+cosine_similarity(Name,WordList,SimMat):-
+    pyfunc(xp_fasttext,cosine_similarity(Name,WordList),SimMat).
+
+get_nearest_neighbors(Name,Word,Neighbors):-
+    pyfunc(xp_fasttext,get_nearest_neighbors(Name,Word),Neighbors).

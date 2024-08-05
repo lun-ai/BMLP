@@ -1,0 +1,2 @@
+_:alice <http://xmlns.com/foaf/0.1/knows> _:bob <http://example.org/graphs/john> .
+_:bob <http://xmlns.com/foaf/0.1/knows> _:alice <http://example.org/graphs/james> .

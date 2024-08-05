@@ -1,0 +1,11 @@
+/* File:      pita.P
+** 
+** Author(s): Fabrizio Riguzzi
+** 
+*/
+
+
+:- import bootstrap_package/2 from packaging.
+
+
+:- bootstrap_package('pita', pita), [pita_int].

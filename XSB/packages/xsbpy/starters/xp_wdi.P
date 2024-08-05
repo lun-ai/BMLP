@@ -1,0 +1,40 @@
+:- export wdi_get_json_ref/2, wdi_get_json/2, wdi_sparql_query/3,
+   wdi_json_labels/4,wdi_json_subclass_ofs/3,wdi_json_instance_ofs/3.
+   
+:- ensure_loaded(xsbpy).
+:- import pyfunc/3 from xsbpy.
+:- import values/3 from xp_utils.
+:- import member/2 from basics.
+
+wdi_get_json_ref(Qnode,Dict):- 
+    pyfunc(xp_wdi,get_wd_dict(Qnode),Dict).
+
+wdi_get_json(Qnode,Json):- 
+    pyfunc(xp_wdi,get_wd_entity(Qnode),Json).
+
+wdi_sparql_query(Qnode,PropertyNode,Ret):-
+    pyfunc(xp_wdi,wdi_sparql_query(Qnode,PropertyNode),Ret).
+
+wdi_json_labels(Qnode,Json,Lang,Labels):- 
+    setof(label(Qnode,Lang,Val),values(Json,[labels,Lang,value],Val),Labels),!.
+wdi_json_labels(_Qnode,_Json,_Lang,[]).
+
+wdi_json_subclass_ofs(Q,Json,Classes):-
+    setof(subclass_of(Q,Class),SnakList^(
+				   values(Json,[claims,'P279'],SnakList),
+				   wdi_json_snaklist_prop(SnakList,Class)),
+	  Classes),!.
+wdi_json_subclass_ofs(_Q,_Json,[]).
+
+wdi_json_instance_ofs(Q,Json,Classes):- 
+    setof(instance_of(Q,Class),SnakList^(
+				   values(Json,[claims,'P31'],SnakList),
+				   wdi_json_snaklist_prop(SnakList,Class)),
+	  Classes),!.
+wdi_json_instance_ofs(_Q,_Json,[]).
+
+wdi_json_snaklist_prop(SnakList,Class):-
+    member(Dict,SnakList),
+    values(Dict,[mainsnak,datavalue,value,id],Class).
+    
+

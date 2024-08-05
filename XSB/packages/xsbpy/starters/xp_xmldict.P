@@ -1,0 +1,5 @@
+
+:- ensure_loaded(xsbpy).
+
+xmldict_read(File,Dict):-
+    pyfunc(xmldict,xmldict_read(File),Dict).

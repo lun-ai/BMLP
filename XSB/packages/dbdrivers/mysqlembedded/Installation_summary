@@ -1,0 +1,6 @@
+  MySQL Embedded Server support:                  no
+  MySQL Embedded Server library directory:        
+  MySQL Embedded Server header directory:         
+  MySQL Embedded Server C Flags:                  -g -W -Wall  -g -O2
+  MySQL Embedded Server Loader Flags:              
+

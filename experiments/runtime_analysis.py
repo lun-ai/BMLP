@@ -75,7 +75,7 @@ def compare_runtime(Path, pes, N, methods):
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
     plt.legend(handles, labels, prop={'size': 13})
     plt.tight_layout(pad=0.4)
-    plt.savefig('experiments/networks/exp_1_runtime.png')
+    plt.savefig('figures/exp_1_runtime.png')
 
 
 def compare_runtime_2(Path, pe, MaxN, methods):
@@ -129,7 +129,7 @@ def compare_runtime_2(Path, pe, MaxN, methods):
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
     plt.legend(handles, labels, prop={'size': 13})
     plt.tight_layout(pad=0.4)
-    plt.savefig('experiments/networks/exp_1_runtime_2.png')
+    plt.savefig('figures/exp_1_runtime_2.png')
 
 
 def compare_runtime_3(Path, pes, MaxN, Methods):
@@ -187,7 +187,7 @@ def compare_runtime_3(Path, pes, MaxN, Methods):
     plt.ylabel('Mean CPU time differences (sec)', fontsize=15)
     plt.legend(prop={'size': 15})
     plt.tight_layout(pad=0.4)
-    plt.savefig('exp_1_runtime_3.png')
+    plt.savefig('figures/exp_1_runtime_3.png')
 
 
 # experiment 2
@@ -242,7 +242,7 @@ def compare_GEM_runtime(path, Ns, methods):
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
     plt.legend(handles, labels, prop={'size': 13})
     plt.tight_layout(pad=0.4)
-    plt.savefig('exp_2_runtime.png')
+    plt.savefig('figures/exp_2_runtime.png')
 
 
 compare_runtime('experiments/connect/full/runtime/',

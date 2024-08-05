@@ -1,0 +1,104 @@
+/* File:      term_to_json.P
+** Author(s): Michael Kifer
+**
+** Contact:   michael.kifer@coherentknowledge.com
+**
+** Copyright (C) Coherent Knowledge Systems, LLC, 2021 - 2021.
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+**
+*/
+
+:- compiler_options([xpp_on]).
+#include "char_defs.h"
+
+:- export term_to_json/2.
+
+term_to_json(Term,JsonString) :-
+        term_to_json_aux(Term,JsonListNested),
+        %% could be optimized here, but ok if terms are not large
+        rename_vars_meaningfully(JsonListNested,JsonListNested2),
+        basics:flatten(JsonListNested2,JsonFlat),
+        string:concat_atom(JsonFlat,JsonString).
+
+term_to_json_aux(Term,JsonList) :-
+        (var(Term) -> JsonList =  ['{"variable":"', Term, '"}']
+        ; Term = (_,_) ->
+            basics:comma_to_list(Term,List),
+            term_to_json_list(List,JList),
+            JsonList = ['{"commalist":',JList,'}']
+        ; atom(Term) ->
+            escape_2quotes_backslash_in_atom(Term,TermDbl),
+            JsonList = ['"',TermDbl,'"']
+        ;  number(Term) -> JsonList = [Term]
+        ;  is_list(Term) -> term_to_json_list(Term,JsonList)
+        ; Term =.. [Functor|Args] ->
+            escape_2quotes_backslash_in_atom(Functor,FunctorEsc),
+            machine:module_of_term(Term,TermMod),
+            JsonList = ['{', '"functor":"', FunctorEsc, '",',
+                    '"module":"', TermMod, '",',
+                    '"arguments":', Args_json, '}'],
+            term_to_json_list(Args,Args_json)
+        ).
+
+term_to_json_list(Term,['[', Json, ']']) :-
+        term_to_json_list_aux(Term,Json).
+
+term_to_json_list_aux([],[]) :- !.
+term_to_json_list_aux([H|Term],[JH|Json]) :-
+        term_to_json_aux(H,JH),
+        (Term == [] -> Json = []
+        ;
+           Json = [',',Json1],
+           term_to_json_list_aux(Term,Json1)
+        ).
+
+escape_2quotes_backslash_in_atom(In,Out) :-
+        atom_codes(In,InL),
+        escape_2quotes_backslash_in_list(InL,OutL),
+        atom_codes(Out,OutL).
+escape_2quotes_backslash_in_list([],[]) :- !.
+escape_2quotes_backslash_in_list([CH_DOUBLEQUOTE|Rest], [CH_BACKSLASH,CH_DOUBLEQUOTE|RestConverted]) :-
+	!,
+	escape_2quotes_backslash_in_list(Rest,RestConverted).
+escape_2quotes_backslash_in_list([CH_BACKSLASH|Rest], [CH_BACKSLASH,CH_BACKSLASH|RestConverted]) :-
+	!,
+	escape_2quotes_backslash_in_list(Rest,RestConverted).
+escape_2quotes_backslash_in_list([Ch|Rest],[Ch|RestConverted]) :-
+	escape_2quotes_backslash_in_list(Rest,RestConverted).
+
+%% by copying, does not affect the input arg L
+rename_vars_meaningfully(L,Lcopy) :-
+        copy_term(L,Lcopy),
+        bind_vars_meaningfully(Lcopy).
+
+%% bind_vars_meaningfully/1
+bind_vars_meaningfully(L) :-
+	setof:term_variables(L,Vars),
+	sort(Vars,VarsSorted),
+	bind_vars_meaningfully(VarsSorted,0).
+%% bind_vars_meaningfully/2
+bind_vars_meaningfully([],_) :- !.
+bind_vars_meaningfully([X|R],N) :-
+	atomic(X),
+	!,
+	bind_vars_meaningfully(R,N).
+bind_vars_meaningfully([X|R],N) :-
+	machine:delete_attributes(X),
+        number_codes(N,PreCode), Code = [0'_,0'h|PreCode],
+        atom_codes(Xname,Code),
+	X = Xname,
+	N1 is N+1,
+	bind_vars_meaningfully(R,N1).
+

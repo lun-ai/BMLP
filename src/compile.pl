@@ -60,21 +60,21 @@ compile_lmatrix_(ime,_,[],_,_,_,_).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % using square matrices (specialised)
-compile_constants(rmss,P,BasePath,HerbPath) :- !,
+compile_constants(smp,P,BasePath,HerbPath) :- !,
     mode(P,[T,T]),
     nonvar(T),
     findall(Obj,call(T,Obj),Objs),
     atom_concat(BasePath,'herbn.pl',HerbPath),
     lm_mkcton_mul([(T,Objs)],HerbPath).
-compile_lmatrix(rmss,P,BasePath,HerbPath,LMatrixPath) :- !,
+compile_lmatrix(smp,P,BasePath,HerbPath,LMatrixPath) :- !,
     mode(P,[T1,T2]),
     atom_concat(P,'1',P1),
     atomic_list_concat([BasePath,P1],LMatrixPath),
     consult(HerbPath),
     tell(LMatrixPath),
-    forall(cton(T1,C1,X),compile_lmatrix_(rmss,P,P1,C1,X,T2)),
+    forall(cton(T1,C1,X),compile_lmatrix_(smp,P,P1,C1,X,T2)),
     told.
-compile_lmatrix_(rmss,P,P1,C1,X,T) :-
+compile_lmatrix_(smp,P,P1,C1,X,T) :-
     findall(Y,(Term=..[P,_,_],current_predicate(_,Term),call(P,C1,C2),cton(T,C2,Y)),Ys),
     lm_stob1(Ys,Bs),
     A=..[P1,X,Bs],

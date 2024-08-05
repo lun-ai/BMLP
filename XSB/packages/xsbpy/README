@@ -1,0 +1,15 @@
+
+First ensure that libpython 3 so and the Python.h are installed.
+
+sudo apt-get install python3-dev  
+sudo apt-get install libpython3-dev  
+
+If m4/* macros were changed, run
+
+autoreconf -i --install
+otherwise, just
+autoconf
+
+Then run
+
+configure

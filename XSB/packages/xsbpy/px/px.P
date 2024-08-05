@@ -1,0 +1,106 @@
+:- compiler_options([xpp_on]).
+
+#include "table_status_defs.h"
+#include "../xsbpy_defs.h"
+
+:- export px_comp/3.
+:- export test_pred/2.
+:- import table_status/5 from tables.
+%:- import functor/4 from standard.
+%:- import comma_to_list/2 from basics.
+
+px_comp(Goal,Set,Flag):-
+    (tables:is_tabled(Goal) ->
+        px_comp_tabled(Goal,Set,Flag)
+       ; 
+       px_comp_nontabled(Goal,Set,Flag)).
+%    writeln(set(Set)).
+
+px_comp_nontabled(Goal,AnsList,Flag):- 
+%    writeln(px_comp_nontabled(Goal,AnsList,Flag)),
+    abolish_table_pred(px_table(_)),
+    (px_table(Goal),fail ; true),
+    (NO_TRUTHVALS =:= NO_TRUTHVALS/\Flag -> 
+       findall(NewGoal1,px_get_residual(px_table(Goal),NewGoal1,_Resid,Flag),AnsList1)
+    ;  findall(''(NewGoal,Resid),px_get_residual(px_table(Goal),NewGoal,Resid,Flag),AnsList1)),
+    (SET_COLLECTION =:= SET_COLLECTION/\Flag ->
+	 sort(AnsList1,AnsList2),
+	 AnsList = PYSET_PROLOG(AnsList2)
+    ;	 AnsList = AnsList1).
+ 
+px_comp_tabled(Goal,AnsList,Flag):-
+%    writeln(px_comp_tabled(Goal)),
+    table_status(Goal, _PredTypeCode, _CallTypeCode, AnsSetStatusCode,_SF),
+    (AnsSetStatusCode == COMPLETED_ANSWER_SET -> 
+	 true
+       ; (Goal,fail ; true) ),
+    (NO_TRUTHVALS =:= NO_TRUTHVALS/\Flag ->
+	 findall(NewGoal1,px_get_residual(Goal,NewGoal1,_Resid,Flag),AnsList1)
+      ;  findall(''(NewGoal,Resid),px_get_residual(Goal,NewGoal,Resid,Flag),AnsList1) ),
+    (SET_COLLECTION =:= SET_COLLECTION/\Flag ->
+	 sort(AnsList1,AnsList2),
+	 AnsList = PYSET_PROLOG(AnsList2)
+    ;    AnsList = AnsList1).
+
+px_get_residual(Goal,NewGoal,Resid,Flag):-
+%    writeln(px_get_residual(Goal,NewGoal,Resid,Flag)),
+    (Goal = px_table(Goal1) -> TrueGoal = Goal1 ; TrueGoal = Goal),
+    StripNum is Flag >> 16,
+    (DELAY_LISTS =:= DELAY_LISTS/\Flag ->
+         variant_get_residual(Goal,R1),
+	 TrueGoal =.. [_|Args],
+	 strip_first_n(StripNum,Args,NewArgs),
+	 NewGoal =.. [''|NewArgs],Resid=R1
+%	 (R1 = [] -> Resid = 1 ; Resid = R1)
+    ;    variant_get_residual(Goal,R1),
+	 TrueGoal =.. [_|Args],
+	 strip_first_n(StripNum,Args,NewArgs),
+	 NewGoal =.. [''|NewArgs],
+         (R1 = [] -> Resid = 1 ; Resid = 2) ).
+
+strip_first_n(0,L,L):- !.
+strip_first_n(1,[_|L],L):-!.
+strip_first_n(2,[_,_|L],L):-!.
+strip_first_n(3,[_,_,_|L],L):-!.
+strip_first_n(N,[_|Lin],Lout):-
+    N1 is N - 1,
+    strip_first_n(N1,Lin,Lout).
+	
+
+:- table px_table/1 as variant, opaque.
+px_table(X) :- call(X).
+
+end_of_file.
+
+% get_last_arg(Ans,LastArg):-
+%     functor(Ans,_,A),
+%     arg(A,Ans,LastArg).
+% 
+% pythonize_redidual_list([],[]).
+% pythonize_redidual_list([H1|R1],[H2|R2]):-
+%     pythonize_term(H1,H2),
+%     pythonize_redidual_list(R1,R2).
+% 
+% pythonize_term(H1,H1):- atomic(H1),!.
+% pythonize_term(H1,H2):- H1 = [_|_],!,pythonize_list(H1,H2).
+% pythonize_term(H1,H2):- H1 = ','(_,_),!,pythonize_comma_list(H1,H2).
+% % pythonize_term(H1,H2):- H1 = ':'(_,B),!,pythonize_term(B,H2).
+% pythonize_term(H1,H2):-
+%     H1 =.. [F|Args],      % need to handle HiLog
+%     pythonize_list(Args,Args1),
+% %    writeln(args1(Args1)),
+% %    writeq(f(F)),nl,
+%     (F == '' ->
+%       H2 =.. [''|Args1]
+%       ; H2 =.. ['',F|Args1]).
+% 
+% pythonize_list([],[]).
+% pythonize_list([H1|T1],[H2|T2]):- 
+%     pythonize_term(H1,H2),
+%     pythonize_list(T1,T2). 
+% 
+% pythonize_comma_list(In,Out):- !,
+%     comma_to_list(In,Inlist),
+%     pythonize_list(Inlist,Outlist),
+%     Out =.. ['' |Outlist].
+

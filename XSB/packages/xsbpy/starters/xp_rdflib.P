@@ -1,0 +1,84 @@
+ 
+% Very simple example XSB query's for RDF input and output.  See
+% xp_rdflib.py for details of how rdflib graph objects are
+% translated to Prolog data structures.
+:- export read_rdf/3.
+:- export test_nt/0,test_ttl/0,test_nq/0.
+:- export hdt_load/2.
+:- import pyfunc/4,pyfunc/3 from xsbpy.
+:- import member/2, length/2 from basics.
+:- import misc_error/1 from error_handler.
+?- ensure_loaded(xsbpy).
+
+% read_rdf/3 has been tested on turtle, nt, and nquads, returning list
+% of triples that corresponds to an RDFlib graph.  Different formatts
+% are often read in via plugins, meaning that new formats need to be
+% tested.  Sample files are in the apps directory.
+% for an understandable demo try: 
+% ?- read_rdf(File,Format,TripleList),member(Triple,TripList).
+read_rdf(File,Format,TripleList):-
+    member(Format,[turtle,nt]),!,
+    pyfunc(xp_rdflib,rdflib_parse(File),[format=Format],TripleList),
+    length(TripleList,Len),write(Len),writeln(' lines read.').
+read_rdf(File,nquads,TripleList):- !,
+    pyfunc(xp_rdflib,rdflib_parse_nquads(File),TripleList),
+    length(TripleList,Len),write(Len),writeln(' lines read.').
+read_rdf(File,ttl,TripleList):- !,
+    read_rdf(File,turtle,TripleList).
+read_rdf(_File,_Format,_):-
+    misc_error(['read_rdf/3 has currently only been tested on turtle, ttl, nt, and nquads.  ',
+		'Depending on the format it may be easy or hard to extend: see the rdflob ',
+		'documentation']).
+
+%---------------------------------------------------------------------------
+
+% Writes a Prolog list corresponding to an rdflib graph to a File in a
+% given Format.  This has been tested on nt and turtle, and may not work for 
+% other formats.
+%
+% ?-  pyfunc(xp_rdflib,rdflib_write_file(_Ret,File),[format=Format],_Ret1).
+%
+% to test use the commands below.
+
+% Should be 7 lines plus 2 blank spaces.
+test_nt:-
+    read_rdf('sample.nt',nt,TripleList),
+    pyfunc(xp_rdflib,rdflib_write_file_no_decode(TripleList,'temp'),
+	   [format=nt],_Ret).
+
+% Should be 52 lines
+test_ttl:-
+    read_rdf('sample.ttl',turtle,TripleList),
+    pyfunc(xp_rdflib,rdflib_write_file_no_decode(TripleList,'temp'),
+	   [format=turtle],_Ret).
+
+% should read in 2 lines.
+% Haven't figure out how to write nt -- problem is in Python.
+test_nq:-
+    read_rdf('sample.nq',nquads,List),
+    tell(temp),
+    test_nq_1(List),
+    told.
+
+test_nq_1(List):-
+    member(Elt,List),
+    writeq(Elt),nl,
+    fail.
+test_nq_1(_List).
+
+:- dynamic hdt_loaded/2.
+
+hdt_load(File,Obj):-
+    (hdt_loaded(File,Obj) ->
+       true
+    ;  time(pyfunc(xp_rdflib,hdt_load(File),Obj)),
+       assert(hdt_loaded(File,Obj))).
+
+:- export hdt_query/4.
+hdt_query(Arg1,Arg2,Arg3,List):-
+    (var(Arg1) -> Parg1 = 'None' ; Parg1 = Arg1),
+    (var(Arg2) -> Parg2 = 'None' ; Parg2 = Arg2),
+    (var(Arg3) -> Parg3 = 'None' ; Parg3 = Arg3),
+%    time(pyfunc(xp_rdflib,hdt_query(Parg1,Parg2,Parg3),List)).
+    pyfunc(xp_rdflib,hdt_query(Parg1,Parg2,Parg3),List).
+	

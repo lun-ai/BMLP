@@ -1,0 +1,14 @@
+
+:- export unicode_lower/2, unicode_upper/2, unicode_char_category/2.
+
+:- ensure_loaded(xsbpy).
+:- import pyfunc/3 from xsbpy.
+
+unicode_lower(Upper,Lower):-
+    pyfunc(xp_unicode,unicode_lower(Upper),Lower).
+
+unicode_upper(Lower,Upper):-
+    pyfunc(xp_unicode,unicode_upper(Lower),Upper).
+
+unicode_char_category(Char,Cat):- 
+    pyfunc(xp_unicode,unicode_category(Char),Cat).

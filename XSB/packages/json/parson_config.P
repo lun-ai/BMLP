@@ -1,0 +1,137 @@
+/* File:   parson_config.P
+**
+** Author(s): Michael Kifer
+**
+** Contact:   xsb-users@lists.sourceforge.net
+**
+** Copyright (C) Coherent Knowledge Systems, LLC, 2021.
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+*/
+
+
+
+
+:- compiler_options([xpp_on]).
+#include "extensions_xsb.h"
+
+:- import
+        path_sysop/2,
+        path_sysop/3
+   from file_io.
+:- import
+        xsb_running_under/1,
+        force_rename_file/2,
+        bootstrap_package/2
+   from packaging.
+
+:- import slash/1 from machine.
+:- import search_module/6 from consult.
+:- import xsb_configuration/2 from xsb_configuration.
+:- import shell/1 from shell.
+:- import concat_atom/2 from string.
+
+?- '_$_$_json_load_cc'(parson_xsb).
+   
+'_$_$_json_load_cc'(Basename) :-
+    '_$_$_json_target_shared_lib'(Basename,TrgSharedLib,TrgSharedLibDos,TrgPrlgObjFile),
+    slash(Slash),
+    package_configuration(dir(json), PackageDir),
+    concat_atom([PackageDir,Slash,cc,Slash,Basename],Module),
+    concat_atom([Module,XSB_OBJ_EXTENSION_ATOM], Objfile),
+    concat_atom([Module, '.c'], ModuleSourceFile),
+    (   %% avoid recompilation: check if FILE.OBJ exists and 
+	%% is newer than FILE.c.
+        search_module(Basename,_Dir,_Mod,_Ext,_Base,ModuleO),
+	path_sysop(newerthan,ModuleO,ModuleSourceFile),
+	path_sysop(newerthan,TrgSharedLib,ModuleSourceFile)
+    %% module compiled and is current, so just load
+    -> [Basename]
+
+    ; (xsb_running_under(windows) ; xsb_running_under(cygwin)) ->
+	concat_atom([Module, '.dll'],CygModDLL),
+        get_win_dynlib_filename(PackageDir,WinModDLL),
+	(xsb_running_under(cygwin) ->
+	    consult(Module, []),
+	    (path_sysop(unlink,TrgSharedLib), ! ; true),
+	    path_sysop(rename,CygModDLL, TrgSharedLib),
+	    %% clean up
+	    concat_atom([Module, '.a'],CygModA),
+	    concat_atom([Module, '.o'],CygModO),
+	    concat_atom([Module, '.def'],CygModDEF),
+	    (path_sysop(unlink,CygModA), ! ; true),
+	    (path_sysop(unlink,CygModO), ! ; true),
+	    (path_sysop(unlink,CygModDEF), ! ; true),
+	    (path_sysop(unlink,TrgPrlgObjFile), ! ; true),
+	    path_sysop(rename,Objfile,TrgPrlgObjFile),
+	    [Basename]
+	; 
+	    (path_sysop(unlink,TrgSharedLib), ! ; true),
+	    %% Important to quote WinModDLL below!
+	    shell(['copy /B /Y "', WinModDLL, '" ', TrgSharedLibDos]),
+	    %% In windows Objfile is created by ?- [Basename], so it
+	    %% is copied after
+	    (path_sysop(unlink,TrgPrlgObjFile), ! ; true),
+	    [Basename],
+	    path_sysop(rename,Objfile,TrgPrlgObjFile)
+	)
+
+    %% If Module isn't compiled or is old --- recompile (linux/mac)
+    ;   xsb_configuration(compiler, CC),
+	( xsb_running_under(darwin) ->
+	    concat_atom([Module, '.dylib'], SharedLib)
+	; xsb_running_under(unix) ->
+	    concat_atom([Module, '.so'], SharedLib)
+	; abort('Cannot determine the type of the operating system')
+        ),
+        consult(Module, [cc(CC), cc_opts(' ')]),
+        (path_sysop(rename,Objfile, TrgPrlgObjFile) ; true),
+        path_sysop(rename,SharedLib,TrgSharedLib)
+    ).
+
+
+%% TrgSharedLibDos is like TrgSharedLib, but quoted with "..." in case the file
+%% hame has spaces. Used in the DOS copy command.
+'_$_$_json_target_shared_lib'(Basename,
+                               TrgSharedLib,
+                               TrgSharedLibDos,TrgPrlgObjFile) :-
+	slash(Slash),
+	xsb_configuration(config_libdir, ConfigLibdir),
+	xsb_configuration(config_bindir, ConfigBindir),
+	concat_atom([ConfigLibdir,Slash,Basename,XSB_OBJ_EXTENSION_ATOM],
+                    TrgPrlgObjFile),
+    	(xsb_running_under(windows)
+	%% Important to quote TrgSharedLib below
+	-> concat_atom([ConfigBindir,Slash,Basename,'.dll'],TrgSharedLib),
+	    concat_atom(['"',ConfigBindir,Slash,Basename,'.dll"'],TrgSharedLibDos)
+	; xsb_running_under(cygwin)
+	-> concat_atom([ConfigLibdir,Slash,Basename,'.dll'],TrgSharedLib),
+	    TrgSharedLibDos = TrgSharedLib
+	; xsb_running_under(darwin)
+	-> concat_atom([ConfigLibdir,Slash,Basename,'.dylib'],TrgSharedLib),
+	    TrgSharedLibDos = TrgSharedLib
+	; xsb_running_under(unix)
+	-> concat_atom([ConfigLibdir,Slash,Basename,'.so'],TrgSharedLib),
+	    TrgSharedLibDos = TrgSharedLib
+	; abort('Cannot determine the type of the operating system')
+	).
+
+get_win_dynlib_filename(PackageDir,ParsonLib) :-
+        (xsb_running_under(windows64) ->
+            DLLdir = '\\cc\windows64\\'
+        ; DLLdir = '\\cc\\windows\\' %% not supporting w32
+        ),
+        concat_atom([PackageDir,DLLdir,'parson_xsb.dll'],ParsonLib).
+	
+

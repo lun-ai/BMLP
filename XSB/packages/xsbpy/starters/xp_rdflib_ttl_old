@@ -1,0 +1,69 @@
+@prefix ns1: <http://example.org/ont/transaction-log/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/data/transaction/123> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:23"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/A> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/124> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:24"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/B> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/125> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:24"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/C> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/126> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:25"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/A> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/127> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:25"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/B> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/128> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:26"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/C> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/129> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:28"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/A> ;
+    ns1:statusCode 500 .
+
+<http://example.org/data/transaction/130> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:31"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/B> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/131> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:31"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/C> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/132> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:32"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/A> ;
+    ns1:statusCode 500 .
+
+<http://example.org/data/transaction/133> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:33"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/B> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/134> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:33"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/C> ;
+    ns1:statusCode 200 .
+
+<http://example.org/data/transaction/135> a ns1:Transaction ;
+    ns1:processedAt "2015-10-16T10:22:35"^^xsd:dateTime ;
+    ns1:processedBy <http://example.org/data/server/A> ;
+    ns1:statusCode 401 .
+
+

@@ -42,7 +42,7 @@ fixedpoint_(ime,_,_,N,N) :- !.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % using square matrices (specialised)
-lm_fixpoint(rmss,Path,P,Depth) :-
+lm_fixpoint(smp,Path,P,Depth) :-
     mode(P,[Q,Q]),
     marking(S),!,
     cton(Q,S,X),
@@ -54,16 +54,16 @@ lm_fixpoint(rmss,Path,P,Depth) :-
     write_row_matrix(Path,V0,0,0,BXs),
     atomic_list_concat([Path,P,'1'],SqM),
     consult(SqM),
-    fixedpoint(rmss,Path,[P,1],[V0,0],Depth).
-fixedpoint(rmss,Path,[MName,N],[VName,N1],Depth) :-
+    fixedpoint(smp,Path,[P,1],[V0,0],Depth).
+fixedpoint(smp,Path,[MName,N],[VName,N1],Depth) :-
     mname(VName,'new',VName1),
 	[VName1,N1] @@ Path is_lmatrix_p [VName,N1] @@ Path * [MName,N] @@ Path,
 	% check for closure
 	\+(lm_submatrix([VName1,N1],[VName,N1])),
 	N2 is N1 + 1,
 	[VName,N2] @@ Path is_lmatrix_p [VName,N1] @@ Path + [VName1,N1] @@ Path,
-	fixedpoint(rmss,Path,[MName,N],[VName,N2],Depth), !.
-fixedpoint(rmss,_,_,[_,Depth],Depth) :-	% Reached fixed point
+	fixedpoint(smp,Path,[MName,N],[VName,N2],Depth), !.
+fixedpoint(smp,_,_,[_,Depth],Depth) :-	% Reached fixed point
 	!.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,0 +1,58 @@
+/* File:      pcre.P
+** Author(s): Mandak Pathak
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 2010
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+** 
+*/
+
+%%:- import xsb_configuration/2 from xsb_configuration.
+:- import bootstrap_package/2 from packaging.
+%%:- import abort/1 from standard.
+
+:- import pl_trymatch/4, pl_substitute/4 from pcre4pl.
+
+:- export match/4, substitute/4, check_installation/0.
+
+%% bootstrap(package-dirname-as-string, package-name-as-symbol).
+%% This also asserts 
+%% package_configuration(dir(PackageName), FullPackageDirname)
+%% some packages use it.
+
+:- bootstrap_package([pcre,cc], pcre),
+   [pcreconfig].
+
+
+%% Make uniform interface to the package
+
+match(Pattern, Subject, ResultList, CheckAll) :-	
+	check_installation,
+	pl_trymatch(Pattern, Subject, ResultList, CheckAll).
+	
+substitute(Pattern,Subject,Substitution,Result) :-
+	check_installation,
+	pl_substitute(Pattern,Subject,Substitution,Result).
+
+check_installation :-
+	catch(\+ pcre_info:pcre_info(support,yes),
+	      _,
+	      throw(error(existence_error(package,pcre),
+                          context('The XSB package PCRE has not been configured - see the XSB manual, volume 2',_)))),
+	!,
+	throw(error(existence_error(package,pcre),
+                    context('The package PCRE has not been configured - see the XSB manual, volume 2',_))).
+
+check_installation :- !.

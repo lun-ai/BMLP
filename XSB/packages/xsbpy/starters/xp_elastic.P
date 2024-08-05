@@ -1,0 +1,43 @@
+
+:- import pyfunc/3 from xsbpy.
+
+/* This file gives an simple example of how to interface with elasticsearch.
+   Python functions are in apps/elastic.py */
+
+/* You can pass in a prolog dictionary (i.e., the XSB /* translation
+ * of a Python dictionary. */
+
+doc('_$pydict'([''(author,kimchy),
+   		''(text,'Elasticsearch: cool. bonsai cool.'),
+		''(timestamp,pretty_soon)
+	       ])).
+
+/* Goal 1. makeindex(Res).
+ * This makes an index by setting up the arguments to pyfunc.  Note
+ * that python is dynamically loaded, linked, and ready for action at
+ * the first call to pyfunc/3 */
+
+makeindex(Res):-
+    Index = teritest, Id
+   = 1, doc(Body), pyfunc(xp_elastic,index(Index,Id,Body),Res).
+
+/* Goal 2 pyfunc(xp_elastic,get(teritest,1),Ret)
+ * Check that document number 1 is present in teritest.  This could 
+ * also have been done via a directo call to pyfunc/3.  */ 
+
+/* Goal 3: pyfunc(xp_elastic,refresh(teritest),Ret).
+ * Refresh the index -- more or less analogous to a commit. */
+
+ search_via_json(teritest,'{"query":{"match_all":{}}}',Res).   search_via_json(teritest,'{"query":{"match_all":{}}}',Res).  /* Goal 4: search_via_json(teritest,'{"query":{"match_all":{}}}',Res).
+ * This simple predicate shows how to set up a query with a Json
+ * string rather than a Prolog dictionary. */
+
+search_via_json(Index,Json,Ret):-
+    pyfunc(xsbpy_json,prolog_loads(Json),Dict),
+    pyfunc(xp_lastic,search(Index,Dict),Ret).
+
+/* Goal 5: pyfunc(xp_elastic,drop_index(teritest),Ret). 
+   Delete the test index just made. Go have fun.  */
+
+end_of_file.
+

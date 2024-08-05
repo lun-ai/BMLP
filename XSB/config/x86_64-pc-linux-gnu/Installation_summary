@@ -1,0 +1,123 @@
+
+
+            INSTALLATION SUMMARY
+            --------------------
+
+XSB Version:	   5.0.0
+Code name:	   Green Tea
+Release date:	   2022-05-15
+Configuration:	   x86_64-pc-linux-gnu
+Installation date: Mon Aug  5 13:50:54 BST 2024
+
+  Build process is looking for XSB sources in:	  /home/lun/workspace/BMLP/XSB
+  XSB should be installed in:			  /home/lun/workspace/BMLP/XSB
+  Configuration-specific executables go in:	  /home/lun/workspace/BMLP/XSB/config/x86_64-pc-linux-gnu/bin
+  Configuration-specific libraries go in:	  /home/lun/workspace/BMLP/XSB/config/x86_64-pc-linux-gnu/lib
+  Object code goes in:				  /home/lun/workspace/BMLP/XSB/config/x86_64-pc-linux-gnu/saved.o
+  Site-specific code goes in:			  /home/lun/workspace/BMLP/XSB/site
+  Site configuration-specific code goes in:	  /home/lun/workspace/BMLP/XSB/site/config/x86_64-pc-linux-gnu
+  XSB will be built with:			  gcc   -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char   
+  builtin.c will be built with: 		  gcc  -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char 
+  loader_xsb.c will be built with: 		  gcc  -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char 
+  emuloop.c will be built with: 		  gcc  -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char 
+  tr_utils.c will be built with:		  gcc  -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char 
+  Loader flags: 				  -lm -ldl -lpthread
+  Compilation mode:				  optimal
+  XSB abstract machine: 			  slg-wam
+  XSB scheduling strategy:			  local
+  Garbage Collection Stress-Test:		  no
+  Jumptable-based emulator loop:		  yes
+  Demand support:                                 no
+
+  Details of support for modular database drivers:
+
+  ODBC support:                                   no
+  ODBC library directory:                         
+  ODBC C Flags:                                   
+  ODBC Loader Flags:                              
+
+  MySQL support:                                  no
+  MySQL library directory:                        
+  MySQL header directory:                         
+  MySQL C Flags:                                  
+  MySQL Loader Flags:                             
+
+  MySQL Embedded Server support:                  no
+  MySQL Embedded Server library directory:        
+  MySQL Embedded Server header directory:         
+  MySQL Embedded Server C Flags:                  -g -W -Wall  -g -O2
+  MySQL Embedded Server Loader Flags:              
+
+  Native support for Oracle:			  no
+  Support for the old ODBC driver:		  no
+
+  Support for InterProlog's native engine:   	  no
+  -- JDK may not have been installed or
+  -- JAVA_HOME not set. You will still be able
+  -- to use InterProlog's subprocess engine.
+
+  POSIX regexp matching libraries:                yes
+  POSIX wildcard matching libraries:              yes
+
+  Curl support (HTTP protocol library):           yes
+  Curl C flags:        	                          -g -O2
+  Curl loader flags:                              
+
+  XPath support:				  yes
+  XPath C flags:				  -I/usr/include/libxml2
+  XPath loader flags:				  -L/usr/lib -lxml2
+
+  PCRE support (Perl pattern matching):           yes
+  PCRE C flags:        	                          -g -O2
+  PCRE loader flags:                              
+
+  XSBPY support (XSB to Python connector):        no
+       XSBPY: Python.h not found
+  XSBPY:       Python not found
+
+
+make[1]: Entering directory '/home/lun/workspace/BMLP/XSB/emu'
+
+Compiling XSB with gcc using -O3 -fno-strict-aliasing   -fPIC -Wall -pipe -fsigned-char   
+
+
+Making XSB executable /home/lun/workspace/BMLP/XSB/config/x86_64-pc-linux-gnu/bin/xsb 
+
+	[gcc] -o /home/lun/workspace/BMLP/XSB/config/x86_64-pc-linux-gnu/bin/xsb -lm -ldl -lpthread 
+make[1]: Leaving directory '/home/lun/workspace/BMLP/XSB/emu'
+make[1]: Entering directory '/home/lun/workspace/BMLP/XSB/gpp'
+	[gcc] -o gpp
+
+make[1]: Leaving directory '/home/lun/workspace/BMLP/XSB/gpp'
+make[1]: Entering directory '/home/lun/workspace/BMLP/XSB/packages/xasp'
+make[1]: Nothing to be done for 'nope'.
+make[1]: Leaving directory '/home/lun/workspace/BMLP/XSB/packages/xasp'
+
+
+Configuring XSB packages. Wait...
+| ?- yes
+| ?- | ?- | ?- yes
+| ?- 
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/minizinc:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/curl:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/gap:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/pcre:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/regmatch:
+-------------------- End --------------------------
+-------------- Warnings/Errors --------------------
+While compiling XSB/packages/wildmatch:
+-------------------- End --------------------------
+
+

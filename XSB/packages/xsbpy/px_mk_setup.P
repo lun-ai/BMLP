@@ -1,0 +1,46 @@
+
+:- export mk_setup/1, mk_setup/2,create_activate_script/0.
+:- import xsb_configuration/2 from xsb_configuration.
+:- import concat_atom/2 from string.
+:- import lazy_writeln/2 from standard.
+
+mk_setup(File,PythonIncludeDir) :-
+        writeln(2,'*** Creating the settings for the py-xsb package'),
+        tell(File),
+        mk_setup(PythonIncludeDir),
+        told,
+	create_activate_script().
+
+mk_setup(PythonIncludeDir) :-
+        writeln('from distutils.core import setup, Extension'),
+        xsb_configuration(packagesdir, PkgsDir),
+        xsb_configuration(emudir, EmuDir),
+        xsb_configuration(config_dir, ConfigDir),
+        xsb_configuration(config_bindir, ConfigBinDir),
+        concat_atom([PkgsDir, '/xsbpy'], XSBPy_Dir),
+        writeln('module1 = Extension(\'xsbext\','),
+        write('                    include_dirs = [\''), write(PythonIncludeDir), writeln('\','),
+        write('                                    \''), write(EmuDir), writeln('\','),
+        write('                                    \''), write(XSBPy_Dir), writeln('\','),
+        write('                                    \''), write(ConfigDir), writeln('\'],'),
+        writeln('                    libraries = [\'xsb\'],'),
+        write('                    library_dirs = [\''), write(ConfigBinDir), writeln('\'],'),
+        writeln('                    sources = [\'xsbext.c\', \'xsbpy_common.c\'])'),
+        writeln('
+setup (name = \'px\',
+       version = \'0.1\',
+       description = \'Embedding XSB in Python\',
+       author = \'Theresa Swift\',
+       ext_modules = [module1])
+').
+
+create_activate_script():-
+    open(px_activate,write,Str),
+    xsb_configuration(packagesdir, PkgsDir),
+    lazy_writeln(Str,['export PYTHONPATH="$PYTHONPATH:',PkgsDir,'/xsbpy/px"']),
+    xsb_configuration(config_bindir,Cfbin),
+    lazy_writeln(Str,['export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:',Cfbin,'"']),
+    (xsb_configuration(os_type,darwin) -> 
+	 lazy_writeln(Str,['export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:',Cfbin,'"'])
+       ; true),
+    close(Str).

@@ -1,0 +1,635 @@
+/* File:      increval.P
+** Author(s): Diptikalyan Saha, C. R. Ramakrishnan, David S. Warren, Swift
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 1993-1998
+** 
+** XSB is free software; you can redistribute it and/or modify it under the
+** terms of the GNU Library General Public License as published by the Free
+** Software Foundation; either version 2 of the License, or (at your option)
+** any later version.
+** 
+** XSB is distributed in the hope that it will be useful, but WITHOUT ANY
+** WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE.  See the GNU Library General Public License for
+** more details.
+** 
+** You should have received a copy of the GNU Library General Public License
+** along with XSB; if not, write to the Free Software Foundation,
+** Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: increval.P,v 1.5 2010/04/24 20:48:50 tswift Exp $
+** 
+*/
+:- compiler_options([xpp_on,sysmod]).
+#include "builtin.h"
+#include "incr_xsb_defs.h"
+#include "table_inspection_defs.h"
+
+	 
+%--------
+:- mode incr_directly_depends(+,?).
+incr_directly_depends(X,Y):-	
+	(nonvar(X),var(Y)
+	 ->	immed_depends(X,Y)
+	 ; nonvar(Y),var(X)
+	 ->	immed_affects(Y,X)
+	 ; nonvar(X),nonvar(Y)
+	 ->	immed_depends(X,Z),
+		Z=Y
+	 ;	instantiation_error(incr_directly_depends/2,'1 and 2','at least one nonvar')
+	).
+
+immed_depends(Call,Call2):-
+	(Call = M:Goal -> term_new_mod(M,Goal,NewGoal) ; Call = NewGoal),
+	incr_eval_builtin(IMMED_DEPENDS_LIST, NewGoal, CallList),
+	member(Call2,CallList).		
+
+immed_affects(Call,Call2):-
+	(Call = M:Goal -> term_new_mod(M,Goal,NewGoal) ; Call = NewGoal),
+	incr_eval_builtin(IMMED_AFFECTS_LIST, Call, CallList),
+	member(Call2,CallList).		
+
+%--------
+
+:- mode incr_trans_depends(?,?).
+incr_trans_depends(X,Y):- 
+    findall(d(X,Y),incr_trans_depends_1(X,Y),Dependencies),
+    member(d(X,Y),Dependencies).
+
+incr_trans_depends_1(X,Y):-
+	(nonvar(X),var(Y)
+	 ->	check_incrementally_tabled(X,predicate_not_icrementally_tabled),
+	        abolish_table_call(trans_depends(X,Y)),
+	 	trans_depends(X,Y)
+	 ; var(X),nonvar(Y)
+	 ->	check_incrementally_tabled(Y,predicate_not_icrementally_tabled),
+	        abolish_table_call(trans_affects(Y,X)),
+	 	trans_affects(Y,X)
+	 ; nonvar(X),nonvar(Y)
+	 ->	check_incrementally_tabled(X,predicate_not_icrementally_tabled),
+	 	check_incrementally_tabled(Y,predicate_not_icrementally_tabled),
+	        abolish_table_call(trans_depends(X,Z)),
+	        trans_depends(X,Z),
+		Z=Y
+	 ;	instantiation_error(incr_trans_depends/2,'1 and 2','at least one nonvar')
+	).
+
+:- table trans_affects/2 as variant, opaque.
+trans_affects(Call1,Call2):-
+	immed_affects(Call1,Call2).
+trans_affects(Call1,Call2):-
+	trans_affects(Call1,Call3),
+	immed_affects(Call3,Call2).
+
+:- table trans_depends/2 as variant, opaque.
+trans_depends(Call1,Call2):-
+	immed_depends(Call1,Call2).
+trans_depends(Call1,Call2):-
+	trans_depends(Call1,Call3),
+	immed_depends(Call3,Call2).
+
+%--------
+
+%TES shd. be invalidate call*s*
+:- mode incr_invalidate_call(?).
+incr_invalidate_call(Call) :-
+	get_calls(Call,SF,_),
+	incr_eval_builtin(INVALIDATE_SF,SF,Call),
+	fail.
+incr_invalidate_call(_Call).
+
+%--------
+
+:- mode incr_assert(?).
+incr_assert(Term) :- incr_assert(Term,1,1).
+
+:- mode incr_asserta(?).
+incr_asserta(Term) :- incr_assert(Term,0,1).
+
+:- mode incr_assertz(?).
+incr_assertz(Term) :- incr_assert(Term,1,1).
+
+:- mode incr_assert(?,+,+).
+incr_assert(Term,AZL,Index):-
+	(Term = (:-(H,_)) -> Head = H ; Head = Term),
+	check_incremental(Head,dynamic_incremental_predicate,incr_assert,1),
+	(get_calls_incr(Head,A),
+	 invalidate_callnode(A),
+	 fail
+	 ;	
+	 true
+	),
+	assert(Term,AZL,Index).
+
+invalidate_callnode(CALLNODEPTR):-
+	incr_eval_builtin(INVALIDATE_CALLNODE,CALLNODEPTR).
+
+:- mode invalidate_callnode_trie(+).
+invalidate_callnode_trie(Trie):-
+	incr_eval_builtin(INVALIDATE_CALLNODE_TRIE,Trie).
+
+%------------------------------------------------------------
+
+:- mode incr_retractall(?).
+incr_retractall(Term):-
+	check_incremental(Term,dynamic_incremental_predicate,incr_retractall,1),
+	(get_calls_incr(Term,A),
+	 invalidate_callnode(A),
+	 fail
+	 ;	
+	 true
+	),
+	retractall(Term).
+
+%------------------------------------------------------------
+:- mode incr_retract(?).
+incr_retract(Term):-
+	(Term = (:-(H,_)) -> Head = H ; Head = Term),
+	check_incremental(Head,dynamic_incremental_predicate,incr_retract,1),
+	(get_calls_incr(Head,A),
+	 invalidate_callnode(A),
+	 fail
+	 ;	
+	 true
+	),
+	retract(Term).
+
+%--------
+
+check_incrementally_tabled(Term,Msg) :-
+	term_psc(Term,Psc),
+	(psc_tabled(Psc,T),T > 0
+	 ->	true
+	 ;	table_error(Msg)
+	),
+	psc_get_incr(Psc,INCR),
+	(INCR =:= INCREMENTAL
+	 ->	true
+	 ;	table_error(Msg)
+	).	 
+
+% Succeeds if Term is incremental or opaque
+check_incremental(Term,Type,Pred,Arity):- 
+	incr_eval_builtin(CHECK_INCREMENTAL,Term,Type,Pred,Arity).
+
+%-----------
+% returns callnodeptr as handle
+:- mode get_calls_incr(?,?).
+get_calls_incr(CallTerm, Handle) :-
+	findall(get_calls_incr(CallTerm,Handle),
+		get_calls_incr_each(CallTerm,Handle),
+		List),
+	member(get_calls_incr(CallTerm,Handle),List).
+
+get_calls_incr_each(CallTerm,CallNodePtr) :-
+	get_calls(CallTerm),
+	get_callnodeptr_incr(CallTerm, CallNodePtr).
+
+get_calls(_CallTerm) :- '_$builtin'(TRIE_UNIFY_CALL).
+
+get_callnodeptr_incr(CallTerm,CallNodePtr):-
+		incr_eval_builtin(GET_CALLNODEPTR_INCR, CallTerm, CallNodePtr).	
+
+:- export root_subgoal_is_incr/0.
+root_subgoal_is_incr():- 
+     incr_eval_builtin(ROOT_SUBGOAL_IS_INCR,_).
+
+%-----------
+
+incr_eval_builtin(_BuiltinNo, _A) :-
+	'_$builtin'(INCR_EVAL_BUILTIN).
+
+:- mode incr_eval_builtin(+,?,?).
+incr_eval_builtin(_BuiltinNo, _A, _B) :-
+	'_$builtin'(INCR_EVAL_BUILTIN).
+
+incr_eval_builtin(_BuiltinNo, _A, _B, _C) :-
+	'_$builtin'(INCR_EVAL_BUILTIN).
+
+incr_eval_builtin(_BuiltinNo, _A, _B, _C, _D) :-
+	'_$builtin'(INCR_EVAL_BUILTIN).
+
+
+% Better to use get_call
+%get_subgoal_frame(Call,Ptr):- 
+%	incr_eval_builtin(GET_SUBGOAL_FRAME, Call, Ptr).
+
+:- table trans_connected_ptr/2 as variant, incremental.
+trans_connected_ptr(CN1,CN2):-
+    immed_connected_ptrlist(CN1,CN2).
+trans_connected_ptr(CN1,CN2):-
+	trans_connected_ptr(CN1,CN3),
+	immed_connected_ptr(CN3,CN2).
+
+immed_connected_ptrlist(CNList,CN):- 
+%   writeln(immed_affects_set_ptr(CNList,CN)),
+   immed_affects_set_ptr(CNList,CN).
+%        writeln(immed_affects_ptrlist(CNList,CN)).
+immed_connected_ptrlist(CNList,CN):- 
+%   writeln(immed_depends_set_ptr(CNList,CN)),
+   immed_depends_set_ptr(CNList,CN).
+%	writeln(immed_depends_ptrlist(CNList,CN)).
+
+immed_connected_ptr(CNIn,CNOut):- 
+	immed_affects_ptr_ptr(CNIn,CNOut).
+immed_connected_ptr(CNIn,CNOut):- 
+	immed_depends_ptr_ptr(CNIn,CNOut).
+
+%----------
+:- table trans_affects_ptr/2 as variant, incremental.
+
+:- mode trans_affects_ptr(+,?).
+trans_affects_ptr(CN1,CN2):-
+	immed_affects_set_ptr(CN1,CN2).
+trans_affects_ptr(CN1,CN2):-
+	trans_affects_ptr(CN1,CN3),
+	immed_affects_ptr_ptr(CN3,CN2).
+
+:- mode immed_affects_ptr_ptr(+,?).
+immed_affects_ptr_ptr(CN,CN2):-
+	incr_eval_builtin(IMMED_AFFECTS_CALLNODE_PTRLIST, CN, CNList),
+	member(CN2,CNList).		
+
+:- mode immed_affects_set_ptr(+,?).
+immed_affects_set_ptr(CNList,CN2):-
+	member(CN,CNList),
+	immed_affects_ptr_ptr(CN,CN2).
+
+:- mode immed_affects_ptr_set(+,?).
+immed_affects_ptr_set(CN,CNList):- 
+   incr_eval_builtin(IMMED_AFFECTS_CALLNODE_PTRLIST, CN, CNList).
+
+   %-----------
+
+:- table trans_depends_ptr/2 as variant, incremental.
+:- mode trans_depends_ptr(+,?).
+trans_depends_ptr(CN1,CN2):-
+	immed_depends_set_ptr(CN1,CN2).
+trans_depends_ptr(CN1,CN2):-
+	trans_depends_ptr(CN1,CN3),
+	immed_depends_set_ptr(CN3,CN2).
+
+immed_depends_set_ptr(CNList,CN2):-
+	member(CN,CNList),
+	immed_depends_ptr_ptr(CN,CN2).
+
+:- mode immed_depends_ptr_ptr(+,?).
+immed_depends_ptr_ptr(CN,CN2):-
+	incr_eval_builtin(IMMED_DEPENDS_CALLNODE_PTRLIST, CN, CNList),
+	member(CN2,CNList).		
+
+%not yet needed.
+%immed_depends_ptr_set(CN,CNList):- 
+%   incr_eval_builtin(IMMED_DEPENDS_CALLNODE_PTRLIST, CN, CNList).
+
+%-------------------------------------
+   
+:- mode get_incr_sccs(?).
+get_incr_sccs(Scc):-
+	setof(Skel,
+	      (predicate_property(Skel,tabled),predicate_property(Skel,incremental)),
+	     Skels),
+	get_cns_for_skels(Skels,CNs),
+	get_incr_sccs_1(CNs,Scc).
+
+:- mode get_incr_sccs(?,?).
+get_incr_sccs(CallList,Scc):-
+	get_subgoal_cns(CallList,CNs),
+	get_incr_sccs_1(CNs,Scc).
+
+:- mode get_incr_sccs_with_deps(?,?).
+get_incr_sccs_with_deps(Scc,Depends):-
+	get_incr_sccs(Scc),
+	get_scc_dependency_structure(Scc,Depends).
+
+:- mode get_incr_sccs_with_deps(+,?,?).
+get_incr_sccs_with_deps(SFList,Scc,Depends):-
+	get_incr_sccs(SFList,Scc),
+	get_scc_dependency_structure(Scc,Depends).
+
+%---
+   
+get_cns_for_skels(Skels,CNs):- 
+    get_calls_for_skels(Skels,Calls,[]),
+    get_cns_for_calls(Calls,CNs).
+	    
+get_calls_for_skels([],L,L).
+get_calls_for_skels([Skel|Rs],In,Out):-
+%   writeln(Skel),
+%   findall(Ptr,(get_calls(Skel),get_call(Skel,_Sf,_,Ptr)),In,Mid),
+    findall(Skel,(get_calls(Skel)),In,Mid),
+   get_calls_for_skels(Rs,Mid,Out).
+
+get_cns_for_calls([],[]).   
+get_cns_for_calls([Call|Rca],[CN|Rcn]):-
+   get_call(Call,__,_,CN),
+   get_cns_for_calls(Rca,Rcn).
+   
+get_subgoal_cns([],[]).
+get_subgoal_cns([Call|CR],[CN|CnR]):- 
+	get_call(Call,_SF,_,CN),
+	get_subgoal_cns(CR,CnR).
+
+% TES -- for consistency the GET_INCR_SCCs builtin should be rewritten
+% to use CNs rather than SFs, but I didn't want to muck with the code.
+%
+get_incr_sccs_1(CNS1,Scc):-
+%    writeln(get_incr_sccs_1(CNS1,Scc)),
+	abolish_trans_connected_ptr_calls,
+	setof(Cn,(  member(Cn,CNS1)
+                  ; trans_connected_ptr(CNS1,Cn) ),CNS2),
+	cns_to_sfs(CNS2,SFs),
+	incr_eval_builtin(GET_INCR_SCCS, SFs,Scc),!.
+get_incr_sccs_1(_PtrList,[]).
+
+cns_to_sfs([],[]).
+cns_to_sfs([CN|RC],[SF|RS]):-
+    incr_eval_builtin(CN_TO_SF, CN, SF),
+    cns_to_sfs(RC,RS).
+
+abolish_trans_connected_ptr_calls:- 
+	get_calls(trans_connected_ptr(A,B)),	
+	abolish_table_call(trans_connected_ptr(A,B)),
+%	standard:writeln(abolish_table_call(trans_connected_ptr(A,B))),
+	fail.
+abolish_trans_connected_ptr_calls.
+
+get_scc_dependency_structure(List,Depends):- 
+	partition_list(List,PartList),
+	scc_depends(PartList,Depends,[]).
+
+partition_list(List,PartList):- 
+%	setof(ret(Index,Goal),member(ret(Goal,Index),List),Parts),
+	reverse_partition(List,Parts_dup),
+	sort(Parts_dup,Parts),
+%	standard:writeln(Parts),
+	partition_list_1(Parts,PartList),!.
+partition_list(_List,[]).
+
+reverse_partition([],[]).
+reverse_partition([ret(I,G)|T],[ret(G,I)|T1]):- 
+	reverse_partition(T,T1).
+
+partition_list_1([],[]).
+partition_list_1([ret(N,S)|IRest],[List|ORest]):-
+	partition_list_2([ret(N,S)|IRest],N,List,IRest1),
+	partition_list_1(IRest1,ORest).
+	
+partition_list_2([],_N,[],[]).
+partition_list_2([ret(N,S)|R],N,[ret(N,S)|NR],RestOut):- !,
+	partition_list_2(R,N,NR,RestOut).
+partition_list_2([ret(M,S)|R],_N,[],[ret(M,S)|R]).
+
+scc_depends([],In,In):- !.
+scc_depends([_SCC],In,In):- !.
+scc_depends([SCC|Rest],In,Out):- 
+	scc_depends_1(Rest,SCC,In,Mid),
+	scc_depends(Rest,Mid,Out).
+
+scc_depends_1([],_Scc,In,In).
+scc_depends_1([Scc1|R],Scc2,In,Out):-
+	(scc_depends_2(Scc1,Scc2,Depends) -> In = [Depends|Mid1] ; In = Mid1),
+%	(scc_depends_2(Scc2,Scc1,Depends1) -> Mid1 = [Depends1|Mid2] ; In = Mid2),
+	(scc_depends_2(Scc2,Scc1,Depends1) -> Mid1 = [Depends1|Mid2] ; Mid1 = Mid2),
+	scc_depends_1(R,Scc2,Mid2,Out).
+
+scc_depends_2(SCC1,SCC2,depends(Ind1,Ind2)):-
+	member(ret(Ind1,Subgoal),SCC1),
+	incr_eval_builtin(IMMED_DEPENDS_LIST, Subgoal, SFList),
+	member(Sd,SFList),member(ret(Ind2,Sd),SCC2).
+
+%--------
+
+summarize_idg:- summarize_idg(1).
+
+summarize_idg(Cutoff):-
+    writeln('=============== Interior Nodes (Tabled Subgoals) =============='),
+    summarize_idg_get_incr_subgoals(SubgoalList),
+    summarize_idg_print(SubgoalList,Cutoff,idg),
+    writeln('=============== Leaf Nodes (Calls to Dynamic Predicates) =============='),
+    summarize_idg_get_incr_dyns(DynList),
+    summarize_idg_print(DynList,Cutoff,dyn).
+
+summarize_idg_get_incr_subgoals(List):-
+    setof(PredSpec,summarize_idg_get_incr_subgoals_1(PredSpec),List).
+
+summarize_idg_get_incr_subgoals_1(Term):-
+    predicate_property(Term,incremental),
+    predicate_property(Term,tabled).
+
+summarize_idg_get_incr_dyns(List):-
+    setof(PredSpec,summarize_idg_get_incr_dyns_1(PredSpec),List).
+
+summarize_idg_get_incr_dyns_1(Term):-
+    predicate_property(Term,incremental),
+    predicate_property(Term,dynamic).
+
+summarize_idg_print(List,Cutoff,Type):-
+    member(Elt,List),
+    count_calls(Elt,CallCount),
+    CallCount >= Cutoff,
+    functor(Elt,F,A),
+    (Type = dyn -> 
+	 count_facts(Elt,FactCount),
+	 format("~a/~d : ~d idg_nodes, ~d facts~n",[F,A,CallCount,FactCount])
+       ; format("~a/~d : ~d idg_nodes~n",[F,A,CallCount]) ),
+    fail.
+summarize_idg_print(_List,_,_).
+
+count_calls(Term,Count):-
+    setof(Term,get_calls(Term),List),
+    length(List,Count).
+
+:- import call_c/1 from standard.
+count_facts(Term,Count):-
+    findall(Term,call_c(Term),List),
+    length(List,Count).
+
+/*
+%incr_table_update :-
+%	consume_affected_calls(Affected),
+%	reeval(Affected).
+%
+%incr_table_update(Y) :-
+%	incr_table_update([],Y).
+%
+%incr_table_update(FiltList,Changed):- 
+% 	consume_affected_calls(Affected),
+%	reeval(Affected),
+%	get_changed_calls(FiltList,Changed).
+*/
+
+%/* Return list of affected calls *and makes list empty.  For internal use only.*/
+%:- export consume_affected_calls/1.
+%consume_affected_calls(X) :-
+%	incr_eval_builtin(CONSUME_AFFECTED_CALLS, X).
+%
+%reeval(Calls) :-
+%	(member(Call,Calls),
+%	 call_if_affected(Call),
+%	 fail
+%	 ;
+%	 true
+%	).
+%
+call_if_affected(C) :-
+	incr_eval_builtin(CALL_IF_AFFECTED,C,_).
+
+%/* Filt is a list of skeletons of goals to include in returned list.
+%If Filt is [], then return ALL changed subgoals  */
+%get_changed_calls(Filt,X) :-
+%	incr_eval_builtin(GET_CHANGED_CALLS, Filt, X).
+
+/* this is what is called for lazy reevaluation */
+:- mode lazy_reeval_trap(?).
+lazy_reeval_trap(Call):- 
+	create_lazy_call_list(Call,CALL_LIST_EVAL,List),
+	reverse(List,ListR),
+%        writeln(lazy_reeval_list([ListR,Call])),
+	lazy_reeval_1(ListR),
+	call_c(Call).
+
+lazy_reeval_1([_Call]):- !.
+lazy_reeval_1([Call|Rest]):- 
+	(call_if_affected(Call),fail ; true),  /* does not use affected gl */
+	lazy_reeval_1(Rest).	
+
+create_lazy_call_list(Call,Flag,List) :-
+	incr_eval_builtin(RETURN_LAZY_CALL_LIST,Call,Flag,List).
+
+/*  ====================================================== *
+ * all of these are obsolescent and will not be maintained *
+ *  ====================================================== */
+
+/* Does not use affected_gl which is not always updated by lazy or by abolishes */
+:- mode incr_invalid_subgoals(?).
+incr_invalid_subgoals(List):-
+    (setof(Term,(predicate_property(Term,incremental),
+		 predicate_property(Term,tabled),
+		 incr_is_invalid(Term)),List) -> true ; List = []).
+
+:- mode is_incremental_subgoal(?).
+is_incremental_subgoal(_Subgoal):-
+    obsolete(incr_invalid_subgoals/1, incremental_subgoal/1).
+
+is_incremental_subgoal(Subgoal):-
+        (var(Subgoal) ->
+           current_predicate(S),
+         (S = Mod:Funct/Arity ->
+              functor(S1,Funct,Arity),
+	      Subgoal = Mod:S1
+	  ; functor(S,Funct,Arity),
+            Subgoal = S1)
+	 ; true ),
+        predicate_property(Subgoal,tabled),predicate_property(Subgoal,incremental),
+	%        writeln(incremental_pred(Subgoal)),
+	catch(get_calls(Subgoal,_,_),_E,fail).
+
+:- mode incr_is_invalid(?).
+incr_is_invalid(Call):-
+    incr_is_invalid(Call,Falsecount,_HasAnswers),
+    Falsecount > 0.
+%    writeln(incr_is_invalid(Call,Falsecount,_HasAnswers)).
+
+:- mode incr_is_invalid(?,?,?).
+incr_is_invalid(Call,Falsecount,HasAnswers):-
+    (Call = M:Goal -> term_new_mod(M,Goal,NewGoal) ; Call = NewGoal),
+    incr_eval_builtin(IS_AFFECTED,NewGoal,Falsecount,HasAnswers).
+
+:- mode incremental_subgoal(?,?).
+incremental_subgoal(Call,Falsecount):- 
+        (Call = M:Goal -> term_new_mod(M,Goal,NewGoal) ; Call = NewGoal),
+	incr_eval_builtin(IS_AFFECTED,NewGoal,Falsecount,_HasAnswers).
+
+   /* the following is obsolescent -- use subgoal_property/2, subgoal_property_2 */
+:- mode incremental_subgoals(?,?).
+incremental_subgoals(Subgoal,Falsecount):- 
+    (var(Subgoal) -> 
+ 	predicate_property(S,tabled),predicate_property(S,incremental),
+ 	functor(S,F,A),current_predicate(M:F/A),Subgoal = M:S
+       ;    (Subgoal = M:Goal -> term_new_mod(M,Goal,S) ; Subgoal = S)),
+    catch(get_calls(S),_E,fail),
+    writeln(two(S)),
+    incr_eval_builtin(IS_AFFECTED,S,Falsecount,_HasAnswers).
+
+end_of_file.
+==========================================================================================
+
+%/* probably not useful (but in test suite) */
+% lazy_reeval(Call):- 
+%	create_lazy_call_list(Call,CALL_LIST_CREATE_EVAL,List),
+%	reverse(List,ListR),
+%	lazy_reeval_1(ListR),
+%	call_c(Call).
+
+%incr_assert_immed(Term) :-
+%	incr_assert(Term,1,1),
+%	incr_table_update.
+%
+%incr_asserta_immed(Term) :-
+%	incr_assert(Term,0,1),
+%	incr_table_update.
+%
+%incr_assertz_immed(Term) :-
+%	incr_assert(Term,1,1),
+%	incr_table_update.
+%
+%Obsolete or unneded 
+%
+%incr_assert_inval(Term) :- incr_assert(Term,1,1).
+%incr_asserta_inval(Term) :- incr_assert(Term,0,1).
+%incr_assertz_inval(Term) :- incr_assert(Term,1,1).
+%
+%incr_assert_inval(Term,AZL,Index):-
+%	incr_assert(Term,AZL,Index).
+
+%incr_assert_immed(Term,AZL,Index) :-
+%	incr_assert(Term,AZL,Index),
+%	incr_table_update.
+
+%incr_retractall_immed(Term) :-
+%	incr_retractall(Term),
+%	incr_table_update.
+
+%incr_retractall_inval(Term):-
+%	incr_retractall(Term).
+
+%incr_retract_immed(Term) :-
+%	incr_retract(Term),
+%	incr_table_update.
+%
+%incr_retract_inval(Term):-
+%	incr_retract(Term).
+
+
+/*
+%incr_eval_builtin(_BuiltinNo) :-
+%	'_$builtin'(INCR_EVAL_BUILTIN).
+%incr_eval_builtin(_BuiltinNo, _A, _B, _C) :-
+%	'_$builtin'(INCR_EVAL_BUILTIN).
+%incr_eval_builtin(_BuiltinNo, _A, _B, _C, _D) :-
+%	'_$builtin'(INCR_EVAL_BUILTIN).
+%incr_eval_builtin(_BuiltinNo, _A, _B, _C, _D, _E) :-
+%	'_$builtin'(INCR_EVAL_BUILTIN).
+*/
+
+/*print_call(SF):-
+ *	incr_eval_builtin(PRINT_CALL, SF).
+ *
+*/
+
+/*
+check_incremental(Term,Msg) :-
+	term_psc(Term,Psc),
+	psc_get_incr(Psc,INCR),
+	(INCR > NONINCREMENTAL
+	 ->	true
+	 ;	table_error(Msg)
+	).
+*/
+
+/*
+invalidate_SF(SF):-
+	incr_eval_builtin(INVALIDATE_SF,SF).
+*/

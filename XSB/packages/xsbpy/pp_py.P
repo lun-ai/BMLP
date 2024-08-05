@@ -1,0 +1,79 @@
+
+:- export pp_py/1,pp_py/2.
+
+:- compiler_options([spec_off,xpp_on]).
+#include "xsbpy_defs.h"
+
+:- import syntax_error/1 from error_handler.
+
+% Switching arguments to support stream in first arg.
+pp_py(Str,Term):- pp_py(Term,Str,0).
+
+pp_py(Term):- pp_py(Term,userout,0).
+
+pp_py(PYDICT_PROLOG(List),Str,N):- !,
+    pp_dict(List,Str,N).
+pp_py([H|T],Str,N):- !,
+    pp_list([H|T],Str,N).
+pp_py(PYSET_PROLOG(List),Str,N):- !,
+    pp_set(List,Str,N).
+pp_py(Term,Str,N):-
+    functor(Term,PYTUP_PROLOG,_),!,
+    pp_tuple(Term,Str,N).
+pp_py(Term,Str,N):-
+    pp_elt(Term,Str,N),!.
+
+pp_dict(List,Str,N):-
+    %    tab(Str,N),write(PYDICT_PROLOG('),nl(Str),
+    tab(Str,N),write(Str,'{'),nl(Str),
+    N1 is N + 2,
+    pp_dict1(List,Str,N1),
+    tab(Str,N),writeln(Str,'}').
+
+pp_dict1([],_Str,_).
+pp_dict1([PYTUP_PROLOG(K,V)|T],Str,N):- !,
+    tab(Str,N),write(Str,K),write(Str,': '),
+    atom_length(K,Kl), % need to handle tuples as keys.
+    % writeln(atom_length(K,Kl)),
+    (compound(V) ->
+	 N1 is N + Kl + 1,nl(Str),pp_py(V,Str,N1)
+       ; N1 is Kl + 1, pp_elt(V,Str,0) ),
+    pp_dict1(T,Str,N).
+pp_dict1([(K,V)|_T],_Str,_N):- !,
+    syntax_error(['Comma-list (\',\'/2) (',K,',',V,
+		  ') encountered as a dictionary value instead of \'\'/2.']).
+pp_dict1([H|_T],_Str,_N):- 
+    syntax_error(['Encountered non-dictionary value: ',H]).
+    
+pp_list([],_Str,_).
+pp_list([H|T],Str,N):-
+    tab(Str,N),writeln(Str,'['),
+    N1 is N + 1,
+    pp_seq([H|T],Str,N1),
+    tab(Str,N),write(Str,']'),nl(Str).
+
+pp_tuple(Term,Str,N):-
+    Term =.. [PYTUP_PROLOG|L],
+    tab(Str,N),writeln(Str,'('),
+    N1 is N + 1,
+    pp_seq(L,Str,N1),
+    tab(Str,N),write(Str,')'),nl(Str).
+
+pp_set(List,Str,N):-
+    write(Str,'PYSET_PROLOG('),nl(Str),
+%    N1 is N + 11,
+    N1 is N + 1,
+    pp_seq(List,Str,N1),
+    tab(Str,N),write(Str,')'),nl(Str).
+
+pp_seq([],_Str,_).
+pp_seq([H|T],Str,N):-
+    pp_py(H,Str,N),
+    pp_seq(T,Str,N).
+
+pp_elt(Term,_Str,_N):-
+    compound(Term),!,
+    syntax_error(['The term ',Term,' cannot occur in a term form of a Python data structure.']).
+pp_elt(Term,Str,N):- tab(Str,N),writeln(Str,Term).
+
+    

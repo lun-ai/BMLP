@@ -1,0 +1,56 @@
+/* File:      regmatch.P
+** Author(s): kifer
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 1999
+** 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**      http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+** 
+*/
+
+:- import xsb_configuration/2 from xsb_configuration.
+:- import bootstrap_package/2 from packaging.
+:- import abort/1 from standard.
+
+
+%% bootstrap(package-dirname-as-string, package-name-as-symbol).
+%% This also asserts 
+%% package_configuration(dir(PackageName), FullPackageDirname)
+%% some packages use it.
+
+:- export re_match/5, re_bulkmatch/5, re_substring/4,
+	re_substitute/4.
+:- import 
+      %%do_regsubstitute__/4,
+      %%do_regcharlist_to_string__/2,
+      %%do_regsubstring__/4,
+      do_regmatch__/5,
+      do_bulkmatch__/5
+   from xsb_re_match.
+
+:- bootstrap_package('regmatch', regmatch),
+   (xsb_configuration(regmatch_support, 'yes') -> [regmtchconfig]
+     ;
+     abort('Your system does not seem to have the POSIX pattern matching library installed.')
+     ).
+
+re_match(Regexp, Str, Offset, IgnoreCase, MatchList) :-
+	do_regmatch__(Regexp, Str, Offset, IgnoreCase, MatchList).
+re_bulkmatch(Regexp, Str, Offset, IgnoreCase, MatchList) :-
+	do_bulkmatch__(Regexp, Str, Offset, IgnoreCase, MatchList).
+re_substitute(String, RegionList, SubstStrList, OutStr) :-
+	%%do_regsubstitute__(String, RegionList, SubstStrList, OutStr).
+	string:string_substitute(String, RegionList, SubstStrList, OutStr).
+re_substring(String, BegOffset, EndOffset, OutStr) :-
+	%%do_regsubstring__(String, BegOffset, EndOffset, OutStr).
+	string:substring(String, BegOffset, EndOffset, OutStr).

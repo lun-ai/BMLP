@@ -1,0 +1,1333 @@
+/* File:      modeinf.P
+** Author(s): C.R. Ramakrishnan, with minor updates by David S. Warren
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 1986, 1993-1998
+** 
+** XSB is free software; you can redistribute it and/or modify it under the
+** terms of the GNU Library General Public License as published by the Free
+** Software Foundation; either version 2 of the License, or (at your option)
+** any later version.
+** 
+** XSB is distributed in the hope that it will be useful, but WITHOUT ANY
+** WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE.  See the GNU Library General Public License for
+** more details.
+** 
+** You should have received a copy of the GNU Library General Public License
+** along with XSB; if not, write to the Free Software Foundation,
+** Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: modeinf.P,v 1.15 2013-01-08 14:16:49 dwarren Exp $
+** 
+*/
+
+%% figure out how to handle explicit mod:goal(...) calls.
+
+
+:- compiler_options([sysmod,optimize,spec_repr,xpp_on]).
+#include "extensions_xsb.h"
+ 
+/************************************************************************/
+/*									*/
+/*			Groundness Analyzer				*/
+/*									*/
+/*  Has 2 modes:							*/
+/*     ng meaning nonground						*/
+/*     g meaning ground							*/
+/*									*/
+/* During the execution of the generated mode inference program, a	*/
+/* variable having one of the values above means that the corresponding	*/
+/* variable in the object program will, WHEN THE CURRENT PREDICATE	*/
+/* RETURNS, have a value according to the indicated mode.		*/
+/*									*/
+/************************************************************************/
+
+% main pred. called from compile:
+%	modeanalyze(+ModName, +Module, +DeclFile)
+%
+:- mode modeanalyze(+,?,+).
+modeanalyze(_ModName, _Module, _DeclFile) :-
+    option(mi_foreign), !, 
+%
+% Must change the last update time for DeclFile.
+% But `touch' is unix-specific. Is there any other way to do it?
+% 
+    true.
+modeanalyze(ModName, Module, DeclFile) :-
+    message(('[Analyzing ', ModName, ']')), cputime(StartTime),
+    init_for_analysis,
+    Module = module(SymTab, _DcList, ClList, QrList, _Par),
+    update_lib_dirs(QrList),
+    get_init_calls(SymTab),
+    append(QrList,ClList,AClList),
+
+    extract_symlist([],AllSymList,SymTab),
+    debug(all_syms(AllSymList)),
+
+    gen_abstract_pgm(AClList, SymTab, ImPredList),
+    list_abstract_pgm(ModName),
+    load_abstract_pgm,
+    analyze,
+    debug('Defined Predicates prepared'),
+    check_imp_modes(ImPredList),
+    extract_symlist([pred,defined], PList, SymTab),
+    (select(sym('_$main', 0, _,_), PList, PredList)
+     ->	true			% removed main
+     ;	PredList = PList
+    ),
+    write_all_modes(DeclFile, PredList),
+    print_stats,
+    cleanup_after_analysis,
+    time_message(StartTime, (ModName, ' analyzed')).
+
+/************************************************************************/
+/*									*/
+/*				Analyzer Core				*/
+/*									*/
+/************************************************************************/
+
+analyze :- 
+    %%    (do_all clause('_$call_user'(Head),Body),writeq(('_$call_user'(Head):-Body)),nl),
+    debug('Begin Analysis'),
+    cputime(T0),
+    analyze_fail_loop,
+    dump_call_user_table,
+    cputime(T1),
+    T is T1 - T0,
+    blab('Analysis took '), blab(T), blab(' secs.'), endblab.
+
+analyze_fail_loop :-
+    (do_all
+     '_$init_call'(Goal), 
+     debug(start_call(Goal)),
+%     analyze(Goal)
+     call_user(Goal)
+    ).
+
+%% define DEBUG_TRACE if want detailed tracing of analysis,
+%% just call to debug is expensive.
+#ifdef DEBUG_TRACE
+call_user(Goal) :-
+    debug(c_cu(Goal)),
+    call_user(Goal,_),
+    debug(r_cu(Goal)).
+#else
+call_user(Goal) :- call_user(Goal,_).
+#endif
+
+
+%% table call_user/2 with 2nd arg always a variable, to avoid early completion,
+%% which keeps some clauses from being called for fully-known modes.
+:- table call_user/2 as subsumptive.
+call_user(Goal,_) :-
+    '_$call_user'(Goal).
+
+:- import writeq/1,tab/1,nl/0 from standard.
+
+dump_call_user_table :-
+    (option(mi_debug)
+     ->	(do_all
+	 get_calls(call_user(Goal,_),SGF,Templ),
+	 writeq(Goal),nl,
+	 get_returns(SGF,Templ),
+	 tab(4),
+	 writeq(Goal),nl
+	)
+     ;	true
+    ).
+
+    
+/************************************************************************/
+/*									*/
+/*				Preprocessor				*/
+/*									*/
+/************************************************************************/
+
+get_init_calls(SymTab) :-
+    debug('Initial Calls...'),
+    %get_exported_predicates(SymTab, ExList),
+    extract_symlist([pred,ex], ExList, SymTab),
+    (ExList == []
+     ->	% No explicit exports, get list from globals
+	extract_symlist([pred,global],PList,SymTab)
+     ;	PList = ExList
+    ),
+    (sym_find('_$main',0,SymTab,MainSym)
+     ->	PListM = [MainSym|PList]
+     ;	PListM = PList
+    ),
+    assert_with_declared_modes(PListM),
+    (ExList \== []		% if exports, also calls for explicit modes
+     ->	extract_symlist([mode(_)],EMList,SymTab),
+	assert_new_explicit_modes(EMList)
+     ;	true
+    ).
+
+assert_with_declared_modes([]).
+assert_with_declared_modes([Pred|PList]) :-
+    (sym_prop( (mode _), Pred) 
+     ->	(do_all
+	 sym_prop( (mode Mode), Pred),
+	 cvt_modes_ec(Mode, Call),
+	 assert('_$init_call'(Call))
+	)
+     ;	Pred = sym(P, A, _, _),
+	length(L, A),
+	Call =.. [P|L],
+	assert('_$init_call'(Call))
+    ),
+    assert_with_declared_modes(PList).
+
+%% generate calls for non-exported preds with explicitly declared modes
+assert_new_explicit_modes([]).
+assert_new_explicit_modes([Pred|PList]) :-
+    (sym_prop(ex,Pred)		% already generated
+     ->	true
+     ;	sym_prop(mode(Mode),Pred),
+	cvt_modes_ec(Mode, Call),
+	assert('_$init_call'(Call))
+    ),
+    assert_new_explicit_modes(PList).
+
+cvt_modes_ec(Mode, Call) :-
+    Mode =.. [P|MP],
+    cvt_modes_ec_list(MP, Args),
+    Call =.. [P|Args].
+
+:- index filter_symlist/4-3.
+% Filters symbols with given property: Direction = only/except
+filter_symlist(_Dir, _Prop, [], []).
+filter_symlist(Dir, Prop, [Sym|Syms], Result) :-
+    copy_term(Prop, Prop1),
+    (sym_prop(Prop1, Sym)
+     ->	(Dir == except
+	 -> Rest = Result
+	 ;  Result = [Sym | Rest]
+	)
+     ;	(Dir == except
+	 -> Result = [Sym | Rest]
+	 ;  Rest = Result
+	)
+    ),
+    filter_symlist(Dir, Prop, Syms, Rest).
+
+gen_abstract_pgm(PredList,SymTab,ImPredList) :-
+    gen_imported_defns(SymTab,ImPredList),
+    debug('Generating abstract pgm...'),
+    preproc_preds(PredList),
+    gen_default_clauses(SymTab).
+
+load_abstract_pgm :-
+    debug('Loading abstract pgm...'),
+    assert_all.
+
+gen_imported_defns(SymTab,ImPredList) :-
+    debug('Generating clauses for imported predicates...'),
+%    get_imported_predicates(SymTab, ImPredList),
+    extract_symlist([im(_)],ImPredList,SymTab),
+%%    debugger:trace,
+    pred2mods(ImPredList, ImMods),
+    imported_clauses(ImMods).
+
+%% could be performance problem, quadratic adding...
+pred2mods([], _Mods).
+pred2mods([sym(P, A, prop(_,im(Mod),_,_,_,_), _)|Rest], ModList) :-
+    memberchk(module(Mod, Preds), ModList),
+    (P = Mod:P1
+     ->	true
+     ;	P1 = P
+    ),
+    memberchk((P1/A), Preds),
+    pred2mods(Rest, ModList).
+
+imported_clauses(Mods) :- var(Mods), !.
+imported_clauses([]).
+imported_clauses([module(Mod, Preds)|Rest]) :- 
+    ground(Mod),
+    decl_imported(Preds, Mod),
+    debug(importing_mod_preds(Mod,Preds)),
+    imported_clauses(Rest).
+	
+gen_default_clauses(SymTab) :-
+    debug('Defining default clauses...'),
+    extract_symlist([pred, used], UList, SymTab),
+    debug(pred_used(UList)),
+    filter_symlist(except, defined, UList, U1List),   % remove defined
+    filter_symlist(except, im(_), U1List, UndefList), % remove imported
+    debug(undefined(UndefList)),
+    default_ms_clause(UList),
+    default_clause(UndefList).
+
+default_clause(V) :- var(V), !.
+default_clause([]).
+default_clause([sym(Pred, Arity, _, _) | Rest]) :- !,
+    functor(OpenGoal, Pred, Arity),
+    ('_$flat_rule'('_$call_user'(OpenGoal), true)
+     ->	true
+     ;	assert('_$flat_rule'('_$call_user'(OpenGoal), true))
+    ),
+    default_clause(Rest).
+default_clause([Pred / Arity | Rest]) :-
+    functor(OpenGoal, Pred, Arity),
+    ('_$flat_rule'('_$call_user'(OpenGoal), true)
+     ->	true
+     ;	assert('_$flat_rule'('_$call_user'(OpenGoal), true))
+    ),
+    default_clause(Rest).
+
+default_ms_clause([]).
+default_ms_clause([Sym|DynList]) :-
+    (sym_prop((dynamic),Sym),
+     \+ sym_prop(mode_on_success(_Mode),Sym)
+     ->	Sym = sym(Pred,Arity,_,_),
+	functor(OpenGoal, Pred, Arity),
+	('_$flat_rule'('_$call_user'(OpenGoal), true)
+	 -> true
+	 ;  assert('_$flat_rule'('_$call_user'(OpenGoal), true))
+	)
+     ;	(do_all
+	 sym_prop(mode_on_success(Mode),Sym),
+	 cvt_modes_ec(Mode,Call), % allow ng and vars?
+	 ('_$flat_rule'('_$call_user'(Call),true)
+	  -> true
+	  ;  assert('_$flat_rule'('_$call_user'(Call),true))
+	 )
+	)
+    ),
+    default_ms_clause(DynList).
+
+
+% Generate abstract program
+
+preproc_preds([]).
+preproc_preds([pred(sym(P,A,_Props,_), ClList, _) | Preds]) :- 
+    debug('Generate clauses for '(P/A)),
+    preproc_clauses(ClList, P, A),
+    preproc_preds(Preds).
+
+
+preproc_clauses([], _P, _A).
+preproc_clauses([clause(RHS, LHS, _)|Cls], P, A) :-
+%	debug('flattening '(RHS)),
+    (LHS == inlinegoal(P,A,RHS)
+     ->	true			% ignore, self-defined inline.
+     ;	flatten(RHS, HeadArgs, Neck, Dict),
+	(canonize(LHS, Body, Dict)
+	 -> true %,writeq(can(LHS,Body,Dict)),nl
+	 ;  debug('Canonize failed!'), fail
+	),
+	Head =.. [P|HeadArgs],
+	andify(Neck, Body, TempBody),
+	convert_ifs(TempBody, NewBody),
+	assert('_$flat_rule'('_$call_user'(Head), NewBody))
+    ),
+    preproc_clauses(Cls, P, A).
+
+flatten([], [], true, _Dict) :- !.
+flatten([A|As], [B|Bs], NewNeck, Dict) :- !,
+    flatten_arg(A, B, N1, Dict), 
+    flatten(As, Bs, N2, Dict),
+    andify(N1, N2, NewNeck).
+flatten(A, B, N, D) :-
+    flatten_arg(A, B, N, D),
+    !.
+flatten(F, _, _, _) :-
+    debug('Failure to flatten '(F)), fail.
+
+flatten_arg(varocc(X), Y, true, Dict) :- !,
+    translate_varocc(X, Dict, Y).
+flatten_arg(constant(_SYM), g, true, _Dict) :- !.
+flatten_arg(integer(_INT), g, true, _Dict):- !.
+flatten_arg(real(_FLOAT), g, true, _Dict):- !.
+flatten_arg(structure(_SYM, ArgList), Head, Neck, Dict) :- !,
+    gen_varlist(ArgList, VarList),
+    gen_neck(VarList, Head, Neck, Dict).
+flatten_arg(A, _, _, _) :-
+    debug('Failed to flatten arg '(A)), fail.
+
+gen_varlist(AL, VL) :- gen_varlist(AL, [], VL).
+
+gen_varlist([], VL, VL).
+gen_varlist([A|As], VL1, VL2) :- 
+    gen_varlist1(A, VL1, VL3),
+    gen_varlist(As, VL3, VL2).
+
+gen_varlist1(varocc(X), VLin, VLout) :-
+    add_varocc(varocc(X), VLin, VLout).
+gen_varlist1(constant(_), VL, VL).
+gen_varlist1(integer(_), VL, VL).
+gen_varlist1(real(_), VL, VL).
+gen_varlist1(structure(_, Args), VL1, VL2) :-
+    gen_varlist(Args, VL1, VL2).
+
+add_varocc(X, VL, VL) :-
+    member(X, VL), !.
+add_varocc(X, VL, [X|VL]).
+
+andify(true, C, C) :- !.
+andify(C, true, C) :- !.
+andify(C1, C2, (C1, C2)).
+
+gen_neck([], g, true, _Dict):- !.
+gen_neck(V, X, Neck, Dict) :- 
+    varocc2var(V, Dict, V1),
+    Neck = '_$iFF'(X, V1).
+
+varocc2var([], _, []).
+varocc2var([varocc(X)|Xs], Dict, [Y|Ys]) :-
+    translate_varocc(X, Dict, Y),
+    varocc2var(Xs, Dict, Ys).
+
+translate_varocc(X, Dict, Y) :-
+    ith(X, Dict, Z),
+    (var(Z)
+     ->	Z = (_, Y)
+     ;	Z = (occ, Y)
+    ).
+
+convert_ifs((C1, C2), NC) :- !,
+    convert_ifs(C1, NC1), convert_ifs(C2, NC2),
+    (NC1 == true
+     ->	NC = NC2
+     ;	NC = (NC1,NC2)
+    ).
+convert_ifs((C1; C2), (NC1; NC2)) :- !,
+    convert_ifs(C1, NC1), convert_ifs(C2, NC2).
+convert_ifs('_$iFF'(X, L), NT) :- !,
+    iffify(L, X, NT).
+%convert_ifs('_$iF'(X, L), NT) :- !,
+%    make_if(L, X, NT).
+convert_ifs(Oth, Oth).
+
+%% deal with explicit module modifier...
+canonize(and(L1, L2), C, D) :- !,
+    canonize(L1, C1, D), canonize(L2, C2, D), andify(C1, C2, C).
+canonize(or(L1, L2), (C1 ; C2), D) :- !,
+    canonize(L1, C1, D), canonize(L2, C2, D).
+canonize(if(L1, L2), C, D) :- !,
+    canonize(L1, C1, D), canonize(L2, C2, D), andify(C1, C2, C).
+canonize(not(L), (C,fail; true), D) :- !,
+    canonize(L, C, D).
+canonize(inlinegoal(P, A, Args), C, D) :- !,
+    canonize_inline_goal(P, A, Args, C, D).
+canonize(goal(sym(throw,1,_,_),[_]), fail, _D) :- !.
+canonize(goal(Sym, Args), C, D) :- !,
+    debug(canonize_goal(Sym,Args)),
+    Sym = sym(P, A, Prop, _),
+    (canonize_meta_goal(P, A, Args, C, D)
+     ->	true
+     ;	flatten(Args, GoalArgs, Neck, D),
+	(P = Mod:Pred
+	 -> Goal1 =.. [Pred|GoalArgs],
+	    Goal = Mod:Goal1
+	 ;  Goal =.. [P|GoalArgs]
+	),
+	wrap(Prop, Goal, WrappedGoal),
+	andify(Neck, WrappedGoal, C)
+    ).
+canonize(G, _C, _D) :-
+    debug('Attempt to canonize '(G)), fail.
+
+canonize_inline_goal(P, A, Args, C, D) :- 
+    canonize_inline_special_goal(P, A, Args, C, D), !.
+canonize_inline_goal(P, _A, Args, C, D) :- 
+    flatten(Args, GoalArgs, Neck, D),
+    Goal =.. [P|GoalArgs],
+    wrap(prop(pred, im(builtin), _, _, _, _), Goal , WrappedGoal),
+    andify(Neck, WrappedGoal, C).
+
+wrap(_, true, true) :- !.
+wrap(_, fail, fail) :- !.
+%%wrap(prop(pred, im(_mod), _, _, _, _), Goal, '_$call_user'(Goal)) :- !.
+%%wrap(prop(pred, im(_mod), _, _, _, _), Goal, 'call_user'(Goal)) :- !.
+%wrap(prop(pred, _, _, _, _, _), Goal, 'call_user'(Goal)) :- !.
+wrap(_, Goal, call_user(Goal)).
+
+canonize_inline_special_goal('!', 0, _, true, _D).
+canonize_inline_special_goal('fail', 0, _, fail, _D).  %% same as true?
+canonize_inline_special_goal('=', 2, [A1, A2], C, D) :-
+    flatten(A1, GA1, N1, D),
+    flatten(A2, GA2, N2, D),
+    andify(N1, N2, N),
+    G = ('='(GA1, GA2)),
+    andify(N, G, C).
+
+canonize_meta_goal(',',2,[G1,G2],C,D) :- !,
+    canonize_meta(G1,C1,D),
+    canonize_meta(G2,C2,D),
+    andify(C1,C2,C).
+canonize_meta_goal('->',2,[G1,G2],C,D) :- !,
+    canonize_meta(G1,C1,D),
+    canonize_meta(G2,C2,D),
+    andify(C1,C2,C).
+canonize_meta_goal(';',2,[G1,G2],(C1;C2),D) :- !,
+    canonize_meta(G1,C1,D),
+    canonize_meta(G2,C2,D).
+canonize_meta_goal(once,1,[P],C, D) :- !,
+    canonize_meta(P,C,D).
+canonize_meta_goal(not,1,[P],(C,fail; true), D) :- !,
+    canonize_meta(P,C,D).
+canonize_meta_goal(slg_not,1,[P],(C,fail; true), D) :- !,
+    canonize_meta(P,C,D).
+canonize_meta_goal(tnot,1,[P],(C,fail; true), D) :- !,
+    canonize_meta(P,C,D).
+canonize_meta_goal(catch,3,[G1,_B,G2],(C1 ; C2),D) :- !,
+    debug(canonize_catch(G1,'   ',G2,'   ',D)),
+    canonize_meta(G1,C1,D),
+    canonize_meta(G2,C2,D).
+canonize_meta_goal(retract,1,[G],C,D) :- !,
+    canonize_meta(G,C,D).
+canonize_meta_goal(findall,3,[T,G,L],(CCG;NIL),D) :- !,
+    canonize_meta(G,CG,D),
+    canonize_inline_special_goal('=',2,[T,L],Eq,D),
+    debug(equate(T,L,Eq)),
+    andify(CG,Eq,CCG),
+    canonize_inline_special_goal('=',2,[L,constant(sym([],0,_,_))],NIL,D).
+canonize_meta_goal(^,2,[_,G],C,D) :- !,
+    canonize_meta(G,C,D).
+%% hack for system tripwire meta-predicate
+canonize_meta_goal(break_for_tripwires,1,[GL],CL,D) :- !,
+    canonize_meta_list(GL,CL,D).
+canonize_meta_goal(call_cleanup,2,[G1,G2],(C1;C2),D) :- !,
+    canonize_meta(G1,C1,D),
+    canonize_meta(G2,C2,D).
+canonize_meta_goal(Pred,3,[T,G,L],CCG,D) :-
+    (Pred == bagof ; Pred == setof),
+    !,
+    canonize_meta(G,CG,D),
+    canonize_inline_special_goal('=',2,[T,L],Eq,D),
+    debug(equate(T,L,Eq)),
+    andify(CG,Eq,CCG).
+    
+canonize_meta(G,Can,D) :-
+    canonize_meta0(G,G1),
+    canonize(G1,Can,D).
+
+canonize_meta_list(constant(sym([],0,_,_)),C,D) :-
+    canonize(inlinegoal(true,0,[]),C,D).
+canonize_meta_list(structure(sym('.',2,_,_),[G1,Tail]),C,D) :-
+    canonize_meta_list(Tail,C2,D),
+    canonize_meta(G1,C1,D),
+    andify(C1,C2,C).
+
+%%canonize_meta0(varocc(_),goal(true,[])) :- !.
+canonize_meta0(varocc(_),inlinegoal(true,0,[])) :- !.
+canonize_meta0(structure(sym(',',2,_Props,_N),[Arg1,Arg2]),and(L1,L2)) :- !,
+    canonize_meta0(Arg1,L1),
+    canonize_meta0(Arg2,L2).
+canonize_meta0(structure(sym(';',2,_Props,_N),[Arg1,Arg2]),or(L1,L2)) :- !,
+    canonize_meta0(Arg1,L1),
+    canonize_meta0(Arg2,L2).
+canonize_meta0(structure(sym('->',2,_Props,_N),[Arg1,Arg2]),if(L1,L2)) :- !,
+    canonize_meta0(Arg1,L1),
+    canonize_meta0(Arg2,L2).
+canonize_meta0(structure(sym(not,1,_Props,_N),[Arg1]),not(L1)) :- !,
+    canonize_meta0(Arg1,L1).
+canonize_meta0(structure(Sym,Args),goal(Sym,Args)) :- !.
+canonize_meta0(constant(Sym),goal(Sym,[])) :- !.
+canonize_meta0(G, _C) :-
+    debug('Attempt to canonize_meta '(G)), fail.
+
+iffify([],X,(X=g)) :- !.
+iffify([X],Y,X=Y) :- !.		%prop_iff(X,Y)) :- !.
+iffify([Y1,Y2],X,prop_iff(X,Y1,Y2)) :- !.
+iffify(Ys,X,prop_iff(X,Ys)).
+
+%make_if([], _, true) :- !.
+%make_if([Y], X, prop_if(X, Y)) :- !.
+%make_if([Y1,Y2], X, prop_if(X,Y1,Y2)) :- !.
+%make_if(L, X, prop_if_list(X, L)).
+
+% Load abstract program
+
+assert_all :- declare_all, define_all.
+
+% hook to get all userdef preds to be tabled.
+declare_all :-
+    get_number_of_flat_rules(N),
+    blab('Number of rules = '), blab(N), endblab,
+    nearest_2n_minus_1(N, HashSize),
+    index('_$call_user'/1, 1, HashSize).
+
+define_all :-
+    (do_all
+     '_$flat_rule'(H, B),
+     do_assert(H, B)
+    ),
+    retractall('_$flat_rule'(_,_)),
+    (option(mi_debug)
+     ->	 write('Definition of ''_$call_user''/1:'),nl,
+         (do_all
+	  clause('_$call_user'(Goal),Body),
+	  writeq(Goal),
+	  (Body == true
+	   -> write('.'),nl
+	   ;  write(' :-'),nl,
+	      write('   '),writeq(Body),write('.'),nl
+	  )
+	 )
+     ;  true
+    ).
+
+
+get_number_of_flat_rules(N) :-
+    init_counter('_$number_of_rules'),
+    (do_all
+     '_$flat_rule'(_,_),
+     increment_counter('_$number_of_rules', _)
+    ),
+    read_counter('_$number_of_rules', N).
+
+do_assert(H,B) :- assert(':-'(H, B)).
+
+update_lib_dirs([]).  %seems only one and always _main?
+update_lib_dirs([Pred|Preds]) :-
+    (Pred = pred(sym('_$main',0,_,_),Clauses,_)
+     ->	update_lib_dirs_cl(Clauses)
+     ;	true
+    ),
+    update_lib_dirs(Preds).
+
+update_lib_dirs_cl([]).
+update_lib_dirs_cl([Clause|Clauses]) :-
+    Clause = clause(_,Goal,_),
+    (reconstruct_pterm(Goal,_Vars,ToCall,Term),
+     nonvar(ToCall)
+     ->	(call(Term)
+	 -> true
+	 ;  true
+	)
+     ;	true
+    ),
+    update_lib_dirs_cl(Clauses).
+
+
+reconstruct_pterm(if(Goal1,Goal2),Vars,ToCall,(Term1->Term2)) :-
+    reconstruct_pterm(Goal1,Vars,ToCall,Term1),
+    reconstruct_pterm(Goal2,Vars,ToCall,Term2).
+reconstruct_pterm(and(Goal1,Goal2),Vars,ToCall,(Term1,Term2)) :-
+    reconstruct_pterm(Goal1,Vars,ToCall,Term1),
+    reconstruct_pterm(Goal2,Vars,ToCall,Term2).
+reconstruct_pterm(goal(Sym,Args),Vars,ToCall,PTerm) :-
+    reconstruct_pterms(Args,Vars,ToCall,PArgs),
+    Sym = sym(F,A,_,_),
+    (set_to_call(F,A)
+     ->	ToCall = 1
+     ;	true
+    ),
+    PTerm0 =.. [F|PArgs],
+    (sym_prop(im(Mod),Sym)
+     ->	term_new_mod(Mod,PTerm0,PTerm)
+     ;	PTerm = PTerm0
+    ).
+reconstruct_pterm(inlinegoal(P,_A,Args),Vars,ToCall,Term) :-
+    reconstruct_pterms(Args,Vars,ToCall,PArgs),
+    Term =.. [P|PArgs].
+reconstruct_pterm(structure(sym(F,_,_,_),Args),Vars,ToCall,PTerm) :-
+    reconstruct_pterms(Args,Vars,ToCall,PArgs),
+    PTerm =.. [F|PArgs].
+reconstruct_pterm(constant(sym(Con,0,_,_)),_,_,Con).
+reconstruct_pterm(integer(Con),_,_,Con).
+reconstruct_pterm(real(Con),_,_,Con).
+reconstruct_pterm(varocc(I),Vars,_,X) :-
+    log_ith(I,Vars,X).
+
+reconstruct_pterms([],_Vars,_ToCall,[]).
+reconstruct_pterms([Term|Terms],Vars,ToCall,[PTerm|PTerms]) :-
+    reconstruct_pterm(Term,Vars,ToCall,PTerm),
+    reconstruct_pterms(Terms,Vars,ToCall,PTerms).
+
+set_to_call(add_lib_dir,2).
+set_to_call(add_lib_dir,1).
+set_to_call(bootstrap_package,2).
+
+decl_imported(ImpList,_) :- var(ImpList), !.
+decl_imported(_,usermod) :- !.
+decl_imported(ImpList, FromMod0) :-
+    cvt_mod_to_file(FromMod0,FromMod),
+    str_cat(FromMod, XSB_DCL_EXTENSION_ATOM, File),
+    (expand_incl_file_name(File, FileName)
+     ->	check_times(FromMod),
+	seeing(OldFile),
+	debug(['Loading imported preds from ',FileName]),
+	see(FileName),
+	load_imported_preds(ImpList,FromMod),
+	see(OldFile)
+     ;	debug('Generating default defns for imported preds'),
+        (option(mi_warn)
+	 -> warning(('No declaration file found for module: ', 
+		     FromMod))
+	 ;  true
+	),
+	default_clause(ImpList)
+    ).
+
+cvt_mod_to_file(AtomMod,File) :-
+    atom_to_term(AtomMod,StrMod),
+    (StrMod = usermod(FileX)
+     ->	(compound(FileX)
+	 -> arg(1,FileX,File)
+	 ;  File = FileX
+	)
+     ;	(compound(StrMod)
+	 -> functor(StrMod,File,_)
+	 ;  File = StrMod
+	)
+    ).
+
+load_imported_preds(Imports,_FromMod) :-
+    debug(imports(Imports)),
+    repeat,
+    read(Term),
+    (Term == end_of_file
+     ->	seen, !
+     ; Term = ':-'(mode_on_success(Pat))
+     ->	functor(Pat, Pred, Arity),
+	(member((Pred/Arity), Imports)
+	 -> assert('_$flat_rule'('_$call_user'(Pat), true))
+	 ;  true
+	),
+	fail
+     ; Term = ':-'(mode(Mode))
+     ->	cvt_modes_ec(Mode,CMode),
+	assert('_$mode'(CMode)),
+	fail
+     ;	fail
+    ).
+
+expand_incl_file_name(Name, ExpName) :-
+    (is_in_library(Name, ExpName)
+     ->	true
+     ;	(file_exists(Name)
+	 -> ExpName = Name
+				% .D file not found anywhere;
+	 ;  fail
+	)
+    ).
+
+is_in_library(Name, ExpName) :- 
+    libpath(LibName), 
+    str_cat(LibName, Name, ExpName),
+    file_exists(ExpName).
+
+
+/************************************************************************/
+/*									*/
+/*			Result Collection/Print				*/
+/*									*/
+/************************************************************************/
+
+check_imp_modes([]).
+check_imp_modes([Sym|ImPredList]) :-
+    (\+ sym_prop(im(_),Sym)
+     ->	true
+     ;	Sym = sym(P0,A,_Props,_),
+	(P0 = _Mod:P
+	 -> true
+	 ;  P = P0
+	),
+	functor(Skel,P,A),
+	findall(Skel,'_$mode'(Skel),ModeList), % mode of import
+	(ModeList == []
+	 -> true
+	 ; (call_mode(Skel,ModeGen),
+	    \+ (member(Mode,ModeList),
+		subsumes_chk(Mode,ModeGen)
+	       ))
+	 -> cvt_modelist_ie(ModeList,EModeList),
+	    add_commas_to_list(EModeList,CEModeList),
+	    cvt_mode_ie(ModeGen,EModeGen),
+	    sym_prop(im(Module),Sym),
+	    warning(('Mode conflict: ',Module,' requires ',CEModeList,'; Inferred: ',EModeGen))
+	 ;  true
+	)
+     ;	true
+    ),
+    check_imp_modes(ImPredList).
+
+write_all_modes(File, PredList0) :-
+%%    prepare_usermod_for_aggregs,	
+    sort(PredList0,PredList),
+    open(File,write,OStr),
+    write(OStr,'% THIS FILE IS AUTOMATICALLY GENERATED.'), nl(OStr),
+    write(OStr,'% DO NOT EDIT; ALL CHANGES WILL BE LOST!'), nl(OStr), nl(OStr),
+    debug('Begin local mode output'(PredList)),
+    dump_local_modes(OStr,PredList),
+    nl(OStr),
+    debug('Begin exported mode output'),
+    dump_exported_modes(OStr,PredList),
+    close(OStr).
+
+:- index dump_local_modes/2-2.
+dump_local_modes(_OStr,[]).
+dump_local_modes(OStr,[Sym|Rest]) :-
+    Sym = sym(P,A,_,_),
+    debug(dump_pred_modes(P,A)),
+    dump_pred_modes(OStr,Sym, P, A),
+    dump_local_modes(OStr,Rest).
+
+
+mode_subsumes_chk(G, P) :-
+%	increment_counter('_$subscheck', _),
+    G =..[F|Ag],
+    P =..[F|Ap],
+    more_general(Ag, Ap).
+
+more_general([], []).
+more_general([A|Ag], [B|Bp]) :-
+    more_general_sym(A, B),
+    more_general(Ag, Bp).
+
+more_general_sym(X,_) :- var(X), !.
+more_general_sym(g, Y) :- Y == g.
+
+dump_exported_modes(_OStr,[]).
+dump_exported_modes(OStr,[Sym|PredList]) :-
+    (true  %sym_prop(ex,Sym)
+     ->	Sym = sym(Pred,Arity,_,_),
+	functor(Goal,Pred,Arity),
+	findall(ModeList,(get_mode_pat(Goal,ModeList)/*,standard:writeln(md(Goal,ModeList))*/),ModeLists),
+	(ModeLists == []
+	 -> Goal =.. [Pred|ModeList],
+	    (option(mi_warn)
+	     ->	(\+ get_calls(call_user(Goal,_),_,_)
+		 -> warning(('Inferred to not be called: ',Pred,'/',Arity))
+		 ;  warning(('Inferred to fail or throw: ',Pred,'/',Arity))
+		)
+	     ;	true
+	    ),
+	    (get_calls(call_user(Goal,_),_,_)
+	     ->	true  %write_mode_pattern(OStr,Goal) % call but no answers, so always fails (or throws), no mode_pattern
+	     ;	write_mode_pattern(OStr,Goal) % no call, default mode_pattern (open)
+	    )
+	 ;  %%standard:writeln(userout,modelists(Pred,Arity,ModeLists)),
+	    simplify_mode_lists(ModeLists,UModeLists0),
+	    %%standard:writeln(userout,simp(Pred,Arity,UModeLists0)),
+	    debug(simp(Pred,ModeLists,UModeLists0)),
+	    reduce_by_variant(UModeLists0,UModeLists1),
+	    reduce_by_subsumption(UModeLists1,UModeLists1,UModeLists),
+	    %%standard:writeln(userout,redu(Pred,Arity,UModeLists)),
+%%	    (UModeLists0 == UModeLists -> true ; standard:writeln(userout,reduced(UModeLists0,UModeLists))),
+	    sort(UModeLists,UModeListsS),
+	    (do_all
+	     member(ModeList,UModeListsS),
+	     Goal =.. [Pred|ModeList],
+	     write_mode_pattern(OStr,Goal)
+	    )
+	)
+     ;	true
+    ),
+    dump_exported_modes(OStr,PredList).
+
+reduce_by_variant([],[]).
+reduce_by_variant([M|Ms],Rs) :-
+    (member(MV,Ms),
+     variant(M,MV)
+     ->	reduce_by_variant(Ms,Rs)
+     ;	Rs = [M|Rs1],
+	reduce_by_variant(Ms,Rs1)
+    ).
+
+reduce_by_subsumption([],_,[]).
+reduce_by_subsumption([ModeList|ModeLists],AModeLists,RModeLists) :-
+    (member(AModeList,AModeLists),
+     AModeList \== ModeList,
+     \+ \+ AModeList = ModeList,
+     subsumes_chk(AModeList,ModeList)
+     ->	RModeLists = RModeLists1
+     ;	RModeLists = [ModeList|RModeLists1]
+    ),
+    reduce_by_subsumption(ModeLists,AModeLists,RModeLists1).
+
+write_mode_pattern(OStr,Goal) :-
+    write(OStr,':- mode_on_success '),
+    numbervars(Goal),
+    writeq(OStr,Goal),
+    write(OStr,'.'), nl(OStr).
+
+:- import numbervars/1, unnumbervars/2 from num_vars.
+
+%%simplify_mode_lists(M,M) :- !. %short circuit
+simplify_mode_lists(MLists,SMLists) :-
+    copy_term(MLists,MLists1),
+    numbervar_each(MLists1),
+    simplify_mode_lists1(MLists1,MLists2),
+    unnumbervar_each(MLists2,SMLists).
+
+numbervar_each([]).
+numbervar_each([M|Ms]) :-
+    numbervars(M),
+    numbervar_each(Ms).
+
+unnumbervar_each([],[]).
+unnumbervar_each([M|Ms],[NM|NMs]) :-
+    unnumbervars(M,NM),
+    unnumbervar_each(Ms,NMs).
+
+simplify_mode_lists1(MLs,SMLs) :-
+    append(PM1,[ML1|More1],MLs),
+    append(PM2,[ML2|More2],More1),
+    append(Pre,[M1|Suff],ML1),
+    append(Pre,[M2|Suff],ML2),
+    opp_modes(M1,M2),
+    !,
+    append(Pre,['$VAR'(Num)|Suff],NML),
+    next_ground_varno(NML,0,Num),
+    append([PM1,PM2,[NML|More2]],SMLs1),
+    simplify_mode_lists1(SMLs1,SMLs).
+simplify_mode_lists1(MLs,SMLs) :-
+    append(PM1,[ML1|More1],MLs),
+    append(PM2,[ML2|More2],More1),
+    append(Pre,[M1a|Suff],ML1), nonvar(M1a),
+    append(Pre2,[M1a|Suff2],Suff), 
+    opp_modes(M1a,M2a),
+    append(Pre,[M2a|Suff3],ML2), nonvar(M2a),
+    append(Pre2,[M2a|Suff2],Suff3), 
+    !,
+    append([Pre,[X|Pre2],[X|Suff2]],NML),
+    append([PM1,PM2,[NML|More2]],SMLs1),
+    simplify_mode_lists1(SMLs1,SMLs).
+simplify_mode_lists1(MLs,MLs).
+
+opp_modes(g,ng).
+opp_modes(ng,g).
+
+next_ground_varno([],M,N) :- N is M+1.
+next_ground_varno([Mo|Mos],M,N) :-
+    (Mo = '$VAR'(X), integer(X), X > M
+     ->	M1 = X
+     ;	M1 = M
+    ),
+    next_ground_varno(Mos,M1,N).
+
+append([L],L) :- !.
+append([L1|Ls],L) :-
+    append(Ls,Ls1),
+    append(L1,Ls1,L).
+
+
+
+:- table get_mode_pat(_,po(subsumes_chk(_,_))).
+%%:- table get_mode_pat/2.
+get_mode_pat(Goal,Ans) :-
+    debug(call(Goal)),
+    copy_term(Goal,Goal1),
+    get_calls(call_user(Goal1,_),SGF,Templ),
+    get_returns(SGF,Templ),
+    debug(answ(Goal1)),
+    Goal1 =.. [_|IntModes],
+    Ans = IntModes.
+
+
+/*:- table get_mode_pat(_,po(subsumes_chk(_,_))).
+get_mode_pat(Goal,Ans) :-
+    get_calls(call_user(Goal,GAns),SGF,Templ),
+%%    standard:writeln(call(Goal)),
+    get_returns(SGF,Templ),
+%%    tab(2),standard:writeln(answ(Goal)),
+    GAns =.. [_|IntModes],
+%    cvt_modes_ic(IntModes,Ans),
+    Ans = IntModes,
+    debug(got_answ_user_goal(Ans)).
+**/
+
+
+
+/**%% cvt ng to vars..
+cvt_modes_ic([],[]).
+cvt_modes_ic([I|Is],[E|Es]) :-
+    int2call(I,E),
+    cvt_modes_ic(Is,Es). ***/
+
+dump_pred_modes(OStr,Sym,PredName,Arity) :-
+    findall(DeclMode,sym_prop(mode(DeclMode),Sym),DeclModes),
+    functor(Skel,PredName,Arity),
+    findall(GenModeList,
+	    (call_mode(Skel,GenMode), GenMode =.. [PredName|GenModeList]),
+	    GenModeLists),
+    simplify_mode_lists(GenModeLists,SGenModeLists),
+    reduce_by_subsumption(SGenModeLists,SGenModeLists,UGenModeLists),
+    (DeclModes == []
+     ->	(do_all
+	 sort(UGenModeLists,UGenModeListsS),
+	 member(GenModeList,UGenModeListsS),
+	 ModeGen =.. [PredName|GenModeList],
+	 debug(mode(ModeGen)),
+	 cvt_mode_ie(ModeGen,Mode),
+	 debug(generated_mode(Mode)),
+	 add_mode_to_symtab(Sym, Mode),
+	 write(OStr,':- mode '), write_canonical(OStr,Mode), writeln(OStr,'.')
+	)
+     ;	cvt_modes_to_ilists(DeclModes,DeclModeLists),
+	(member(GModeList,UGenModeLists),
+	 \+ (member(DModeList,DeclModeLists), 
+	     subsumes_chk(DModeList,GModeList)
+	    )
+	 -> cvt_modes_ie_lists(UGenModeLists,PredName,UGenModes),
+	    sort(UGenModes,SUGenModes),
+	    add_commas_to_list(SUGenModes,CUGenModes),
+	    warning(('Mode conflict: Declared: ',DeclModes,' Inferred: ',CUGenModes))
+	 ;  true
+	),
+	(do_all  % write out declared (perhaps wrong) modes.
+	 sort(DeclModes,DeclModesS),
+	 member(DMode,DeclModesS),
+	 write(OStr,':- mode '), write_canonical(OStr,DMode), writeln(OStr,'.')
+	)
+    ).
+    
+add_commas_to_list([A],[A]) :- !.
+add_commas_to_list([A|As],[A,','|Cs]) :-
+    add_commas_to_list(As,Cs).
+
+cvt_modes_to_ilists([],[]).
+cvt_modes_to_ilists([DMode|DeclModes],[DList|DeclModeLists]) :-
+    DMode =.. [_|DArgs],
+    cvt_mode_ei_list(DArgs,DList),
+    cvt_modes_to_ilists(DeclModes,DeclModeLists).
+
+cvt_mode_ei_list([],[]).
+cvt_mode_ei_list([DArg|DArgs],[Di|Dis]) :-
+    ext2call(DArg,Di),
+    cvt_mode_ei_list(DArgs,Dis).
+
+cvt_mode_ie(ModeGen,Mode) :-
+    ModeGen =.. [Pred|GArgs],
+    cvt_mode_ie_list(GArgs,MArgs),
+    Mode =.. [Pred|MArgs].
+
+cvt_modes_ie_lists([],_PredName,[]).
+cvt_modes_ie_lists([List|UGenModeLists],PredName,[Mode|UGenModes]) :-
+    cvt_mode_ie_list(List,EList),
+    Mode =.. [PredName|EList],
+    cvt_modes_ie_lists(UGenModeLists,PredName,UGenModes).
+
+cvt_modelist_ie([],[]).
+cvt_modelist_ie([IMode|IModes],[EMode|EModes]) :-
+    IMode =.. [P|IArgs],
+    cvt_mode_ie_list(IArgs,EArgs),
+    EMode =.. [P|EArgs],
+    cvt_modelist_ie(IModes,EModes).
+
+
+cvt_mode_ie_list([],[]).
+cvt_mode_ie_list([G|Gs],[M|Ms]) :-
+    int2ext(G,M),
+    cvt_mode_ie_list(Gs,Ms).
+
+:- table call_mode(_,po(subsumes(_,_))).
+call_mode(Skel,Skel1) :-
+    copy_term(Skel,Skel1), % dont bind Skel, messes up with group-by on that arg.
+    get_calls(call_user(Skel1,_),_,_).
+
+get_prev_modes(Sym, ModeList) :-
+    findall(Mode, sym_prop((mode Mode), Sym), ModeList).
+
+add_mode_to_symtab(Sym, Mode) :-
+    get_prev_modes(Sym, PrevModes),
+    debug('Previous modes are '(PrevModes,Mode)),
+    (PrevModes \== [],
+     weaker_than_declared(PrevModes, Mode) % I.e., may be called in wrong mode.
+     ->	warning(('Inferred mode ', Mode, 
+		 ' is weaker than declared mode: ',
+		 PrevModes))
+     ;  true
+    ),
+    sym_propin((mode Mode), Sym).
+
+weaker_than_declared([], _Mode).
+weaker_than_declared([M | Rest], Mode) :-
+    debug('weaker than declared? '),
+    (weaker_mode(Mode, M)
+     ->	weaker_than_declared(Rest, Mode)
+     ;	fail
+    ).
+
+weaker_mode(M1, M2) :-	
+%	debug('which is weaker? '(M1, M2)),
+	% true if M1 is weaker than M2
+    M1 =.. [F|A1],
+    M2 =.. [F|A2],
+    weaker_mode1(A1, A2).
+
+weaker_mode1([A|As], [B|Bs]) :-
+    (weaker_symbol(A, B) 
+     ->	true
+     ;	weaker_mode1(As, Bs)
+    ).
+
+cvt_modes_ec_list([], []).
+cvt_modes_ec_list([X|Xs], [Y|Ys]) :-
+    ext2call(X, Y),
+    cvt_modes_ec_list(Xs, Ys).
+
+/************************************************************************/
+/*									*/
+/*			Trivial library functions			*/
+/*									*/
+/************************************************************************/
+
+blab(X) :-
+    (option(mi_verbose)
+     ->	write(userout,X)
+     ;	true
+    ).
+
+endblab :-
+    (option(mi_verbose)
+     ->	nl(userout)
+     ;	true
+    ).
+
+/*debug(X) :-
+    (option(mi_debug)
+     ->	writeln(userout,X)
+     ;	true
+    ).*/
+debug(_).
+
+nearest_2n_minus_1(N, M) :-
+    nearest_2n(N, 1, M1),
+    M is M1 - 1.
+
+nearest_2n(N, N1, M) :-
+    T is N + 1,
+    (N1 =< T 
+     ->	N2 is 2 * N1,
+	nearest_2n(N, N2, M)
+     ;	M = N1
+    ).
+
+	
+list_abstract_pgm(File) :-
+    (option(mi_dump) 
+     ->	str_cat(File, '.prop', Dump),
+	open(Dump,write,OStr),
+	dump_asserted_code(OStr),
+	close(OStr)
+     ;	true
+    ).
+
+dump_asserted_code(OStr) :-
+    '_$flat_rule'(NH,B),
+    (B == true
+     ->	writeq(OStr,NH)
+     ;	writeq(OStr,(NH :- B))
+    ),
+    write(OStr,'.'), nl(OStr),
+    fail.
+dump_asserted_code(OStr) :-
+	% initial calls
+    '_$init_call'(G),
+    writeq(OStr,'_$init_call'(G)), write(OStr,'.'), nl(OStr),
+    fail.
+dump_asserted_code(_).
+
+/************************************************************************/
+/*									*/
+/*   Initialization							*/
+/*									*/
+/************************************************************************/
+
+init_for_analysis:-
+    debug('Initializing...'),
+    define_std_preds,
+    (do_all
+     library_directory(Dir),
+     assert(saved_library_directory(Dir))
+    ).
+
+define_std_preds :-
+    seeing(OldFile),
+    ((expand_incl_file_name('stdmodes.D', File)
+      ;
+      expand_incl_file_name('stdmodes.DD', File)
+     )
+     ->	see(File),
+	get_std_pred_defs,
+	see(OldFile)
+     ;	write(userout,'Internal Error: '),
+	write(userout,'Modes for Standard Predicates not found.'),
+	nl(userout),
+	abort
+    ).
+
+get_std_pred_defs :-
+    repeat,
+    read(Term),
+    (Term == end_of_file
+     ->	seen, !
+     ; Term = ':-'(mode_on_success(Pat))
+     ->	assert('_$flat_rule'('_$call_user'(Pat), true)),
+	fail
+    ).
+
+:- dynamic '_$call_user'/1.
+:- dynamic '_$flat_rule'/2.
+:- index('_$flat_rule'/2,trie).
+:- dynamic '_$init_call'/1.
+:- index('_$init_call'/1,trie).
+:- dynamic saved_library_directory/1.
+:- dynamic '_$mode'/1.
+
+/************************************************************************/
+/*									*/
+/*   Clean-up								*/
+/*									*/
+/************************************************************************/
+
+cleanup_after_analysis :-
+    remove_tabled_stuff,
+    remove_asserted_stuff,
+    retractall(library_directory(_)),
+    (do_all
+     saved_library_directory(Dir),
+     assert(library_directory(Dir))
+    ),
+    retractall(saved_library_directory(_)),
+    true.
+
+remove_tabled_stuff :-
+    abolish_table_pred(call_user(_,_)),
+    abolish_table_pred(get_mode_pat(_,_)),
+    abolish_table_pred(call_mode(_,_)).
+
+remove_asserted_stuff :-
+    retractall('_$flat_rule'(_,_)),
+    retractall('_$mode'(_)),
+    retractall('_$init_call'(_)),
+    retractall('_$call_user'(_)).
+
+print_stats :-
+    (option(mi_debug)
+     ->	count_answers(get_calls(call_user(_,_), _, _), N),
+	write('Number of calls: '), writeln(N),
+	count_answers(get_all_returns(_), N1),
+	write('Number of returns: '), writeln(N1)
+	%%,statistics
+     ;	true
+    ).
+
+check_times(Mod) :-
+    (option(mi_warn)
+     ->	get_time(decl, Mod, ModeTime),
+	get_time(prolog, Mod, ProgTime),
+	get_time(header, Mod, HdrTime),
+	((earlier(ModeTime, ProgTime) ; earlier(ModeTime, HdrTime))
+	 -> warning( ('Using outdated analysis info for: ', 
+		      Mod) )  %,' mt=',ModeTime,' pt=',ProgTime,' ht=',HdrTime))
+	 ;  true
+	)
+     ;  true
+    ).
+
+
+get_time(Type, Mod, Time) :-
+    get_ext(Type, Ext),
+    str_cat(Mod, Ext, File),
+    (expand_incl_file_name(File, FileName)
+%%     ->	file_time(FileName, time(_Time1,_Time2)) 
+     ->	file_time(FileName, Time) 
+     ;	Time = -1		% not exists
+    ).
+
+get_ext(decl, XSB_DCL_EXTENSION_ATOM).
+get_ext(prolog, XSB_SRC_EXTENSION_ATOM).
+get_ext(header, XSB_HDR_EXTENSION_ATOM).
+
+earlier(T1, T2) :- T2 =\= -1, T1 @< T2.
+
+:- mode get_all_returns(?).
+get_all_returns(X) :-
+    get_calls(call_user(_X1,_), Skel, X),
+    get_returns(Skel , X).
+
+count_answers(_C, _N) :-
+    init_counter('_$count'), fail.
+count_answers(C, _N) :-
+    call(C),
+    increment_counter('_$count', _),
+    fail.
+count_answers(_C, N) :-
+    read_counter('_$count', N).
+
+read_counter(Counter, Value) :-
+    conget(Counter, Value).
+init_counter(Counter) :-
+    conset(Counter, 0).
+increment_counter(Counter, NewValue) :-
+    conget(Counter, Value),
+    NewValue is Value + 1,
+    conset(Counter, NewValue).
+
+
+/************************************************************************/
+/*									*/
+/*	Predicates to define abstract domain				*/
+/*									*/
+/*  Has 2 modes:							*/
+/*     ng meaning nonground						*/
+/*     g meaning ground							*/
+/*									*/
+/* During the execution of the generated mode inference program, a	*/
+/* variable having one of the values above means that the corresponding	*/
+/* variable in the object program will, WHEN THE CURRENT PREDICATE	*/
+/* RETURNS, have a value according to the indicated mode.		*/
+/*									*/
+/************************************************************************/
+
+%% Map internal abstract domains to extern modes (in mode decls)
+int2ext(X, Y) :- X == g, !, Y = '+'.
+int2ext(_, '?').
+
+/**int2call(X, Y) :- X == g, !, Y = 'g'.
+int2call(_, _).**/
+
+
+%% Map external modes (in mode decls) to internal abstract domains
+ext2call(X,X) :- var(X),!.
+ext2call(ng,ng) :- !.
+ext2call(g,g) :- !.
+ext2call('+',g) :- !.
+ext2call('++',g) :- !.
+ext2call('?',_) :- !.
+ext2call('-',_) :- !.
+ext2call(Mode,_) :- !, warning(('Illegal mode indicator: ',Mode)).
+
+%% External modes (used in mode decls), "subsumes"
+weaker_symbol('-', '+').
+weaker_symbol('?', '+').
+weaker_symbol('-', '++').
+weaker_symbol('?', '++').
+
+
+/************************************************************************/
+/*									*/
+/*			Propositions for =/2				*/
+/*									*/
+/************************************************************************/
+
+
+%% from e.g. X=[Y|Z]: prop_iff(X,Y,Z)
+%:- table prop_iff/3.
+:- mode prop_iff(?,?,?).
+:- index prop_iff/3-3.
+prop_iff(X,X,g).
+prop_iff(ng,_Y,ng).
+    
+
+%% from e.g. X = f(Y1,Y2,...,Yn): prop_iff(X,[Y1,Y2,...,Yn]).
+%:- table prop_iff/2.
+:- mode prop_iff(?,?).
+prop_iff(X,[Y|L]) :-
+    (L == []
+     ->	X = Y
+     ;	(Y = ng, X = ng
+	 ;
+	 Y = g,
+	 prop_iff(X,L)
+	)
+    ).
+
+force_modeinf_loaded.

@@ -1,0 +1,107 @@
+%% This compiles the examples below on Unix and Windows
+
+:- compiler_options([xpp_on]).
+
+%% In case one does not need setvcvars, change the order of the next two lines
+#define ENVSCRIPT  ''
+#define ENVSCRIPT  'setvcvars & '
+
+:-
+    xsb_configuration(os_type,OS),
+    (OS == windows
+     ->	make_windows
+     ;	make_unix
+    ).
+
+make_unix :-
+    xsb_configuration(compiler_flags,CFLAGS),
+    xsb_configuration(loader_flags,LDFLAGS),
+    xsb_configuration(config_dir,CONFDIR),
+    xsb_configuration(emudir,Emudir),
+    xsb_configuration(compiler,Compiler),
+    str_cat(CONFDIR, '/saved.o/', ObjDir),
+
+    write('Compiling cregs.c ... '),
+    loc_shell([Compiler, ' -c ', ' -I', Emudir, ' -I', CONFDIR, ' ', CFLAGS, ' cregs.c ']),
+    loc_shell([Compiler, ' -o ', './cretest ',
+	       ObjDir, 'xsb.o ', ' cregs.o ', LDFLAGS]),
+    writeln('You can find the executable in  ./cretest'),
+    
+    write('Compiling cfixedstring.c ... '),
+    loc_shell([Compiler, ' -c ', ' -I', Emudir, ' -I', CONFDIR, ' ', CFLAGS, ' cfixedstring.c ']),
+    loc_shell([Compiler, ' -o ', './cfstest ',
+	       ObjDir, 'xsb.o ', ' cfixedstring.o ', LDFLAGS]),
+    writeln('You can find the executable in  ./cfstest'),
+    
+    write('Compiling cvarstring.c ... '),
+    loc_shell([Compiler, ' -c ', ' -I', Emudir, ' -I', CONFDIR, ' ', CFLAGS, ' cvarstring.c ']),
+    loc_shell([Compiler, ' -o ', './cvstest ',
+	       ObjDir, 'xsb.o ', ' cvarstring.o ', LDFLAGS]),
+    writeln('You can find the executable in  ./cvstest').
+
+%%loc_shell(Args) :- shell(Args).
+
+/* or if cygwin on windows 7-64, try: */
+
+:- import concat_atom/2, str_repl/4 from string.
+:- import append/3 from basics.
+loc_shell(Args) :-
+	concat_atom(Args,AArgs),
+	str_repl(AArgs,'\\','/',FArgs),
+	NArgs = ['bash -c "',FArgs,'"'],
+	writeln(userout,NArgs),
+	shell(NArgs).
+
+make_windows :-
+#if  ENVSCRIPT != ''
+    writeln(userout,'Be sure that setvcvars.bat is accessible through the'),
+    writeln(userout,'PATH environment variable, to correctly set the environment'),
+    writeln(userout,'for VC to compile for the correct windows system (32- or 64-bit).'),
+#endif
+
+    xsb_configuration(config_bindir,XSBBIN),
+    xsb_configuration(compiler,Compiler),
+%    str_cat(CONFDIR, '/saved.o/', ObjDir),
+
+    write('Compiling cregs.c ... '),
+    concat_atom([ENVSCRIPT,
+                 Compiler, ' /nologo cregs.c /Fecretest.exe ',
+                 /*
+                    Note: enlarge loader stack so will be enough for xsb.dll
+                    DWINDOWS_IMP must be defined to link with varstring_xsb.c
+                 */
+                 '/F5000000 /DWINDOWS_IMP ',
+                 XSBBIN, '/xsb.lib ',
+		 '/I "../../emu" /I "../../config/x64-pc-windows"'],
+                Cmd1),
+    writeln(Cmd1),
+    shell(Cmd1),
+    writeln('You can find the executable in  ./cretest.exe'),
+
+    write('Compiling cfixedstring.c ... '),
+    shell([ENVSCRIPT,
+           Compiler, ' /nologo ./cfixedstring.c /Fecfstest.exe ',
+	   '/F5000000 /DWINDOWS_IMP ',
+           XSBBIN, '/xsb.lib ',
+	   '/I ""../../emu"" /I ""../../config/x64-pc-windows""']),
+    writeln('You can find the executable in  ./cfstest.exe'),
+
+    write('Compiling cvarstring.c ... '),
+    shell([ENVSCRIPT,
+           Compiler, ' /nologo ./cvarstring.c /Fecvstest.exe ',
+	   '/F5000000 /DWINDOWS_IMP ',
+           XSBBIN, '/xsb.lib ',
+	   '/I ""../../emu"" /I ""../../config/x64-pc-windows""']),
+    writeln('You can find the executable in  ./cvstest.exe'),
+
+    nl,writeln('Testing: cregs'),
+    shell(['set PATH=', XSBBIN, ';%PATH% & ',
+           'cretest.exe']),
+    nl,writeln('Testing: cfixedstring'),
+    shell(['set PATH=', XSBBIN, ';%PATH% & ',
+           'cfstest.exe']),
+    nl,writeln('Testing: cvarstring'),
+    shell(['set PATH=', XSBBIN, ';%PATH% & ',
+           'cvstest.exe']).
+    
+

@@ -1,0 +1,62 @@
+
+:- export open_url/4, open_url/5.
+:- export delete_curl_pair/3.
+:- export get_curl_pair/3.
+
+%% dont :- bootstrap_package([curl, cc], curl).
+%% loading curl (in packages/curl.P) does it.
+:- import
+        load_page/5,
+        www_cache_filename/4, set_tmp_file/3, post_us_pair/3,
+        encode_url/2,
+	delete_us_pair/3, get_us_pair/3
+   from curl.
+:- import check_atom/3, permission_error/4 from error_handler.
+:- import
+        warning/1,
+        open/3, close/1, write/2
+   from standard.
+
+:- mode open_url(+,+,?,+).
+open_url(Url,Mode,Stream,Options) :- 
+        open_url(Url,Mode,Stream,Options,Warn),
+        (Warn==[] -> true
+        ; warning(('Open URL: ', Warn))
+        ).
+
+:- mode open_url(+,+,?,+,?).
+open_url(url(Atom),read,Stream,Options,Warn) :- 
+	!, 
+	load_page(url(Atom), Options, _, Doc, Warn), 
+	encode_url(url(Atom), [DirEnc, FileBase, Suffix]), 
+	(Doc == '' -> 
+            permission_error(open,file,url(Atom),open/4)
+        ; 
+            true
+	), 
+	www_cache_filename(Options,FileBase,Suffix,FileUnEnc), 
+	set_tmp_file(DirEnc, FileUnEnc, TmpFile), 
+	check_atom(TmpFile,'open_url/5',*),		% for mi, maybe eliminate when analyze curl?
+	open(TmpFile, write, W),
+	write(W, Doc),
+	close(W),
+	open(TmpFile, read, Stream), 
+	post_us_pair(Atom, read, Stream).
+open_url(url(Atom),write,Stream,Options,Warn) :- 
+	!, 
+	load_page(url(Atom),[redirect(false)|Options],_,_Doc,Warn),
+	encode_url(url(Atom), [DirEnc, FileBase, Suffix]), 
+	www_cache_filename([redirect(false)|Options],FileBase,Suffix,FileUnEnc), 
+	set_tmp_file(DirEnc, FileUnEnc, TmpFile), 
+	check_atom(TmpFile,'open_url/5',*),		% for mi, maybe eliminate when analyze curl?
+	open(TmpFile, write, Stream), 
+	post_us_pair(Atom, write, Stream).
+
+:- mode delete_curl_pair(?,?,?).  % lookup to see if can be more precise
+delete_curl_pair(X,Y,Z) :-
+	delete_us_pair(X,Y,Z).
+
+:- mode get_curl_pair(?,?,?).  % lookup to see if can be more precise
+get_curl_pair(X,Y,Z) :-
+	get_us_pair(X,Y,Z). 
+

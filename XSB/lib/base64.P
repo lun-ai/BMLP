@@ -1,0 +1,60 @@
+/* File:      base64.P
+** Author(s): Michael Kifer
+** Contact:   xsb-contact@cs.sunysb.edu
+** 
+** Copyright (C) The Research Foundation of SUNY, 2018
+** 
+** XSB is free software; you can redistribute it and/or modify it under the
+** terms of the GNU Library General Public License as published by the Free
+** Software Foundation; either version 2 of the License, or (at your option)
+** any later version.
+** 
+** XSB is distributed in the hope that it will be useful, but WITHOUT ANY
+** WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE.  See the GNU Library General Public License for
+** more details.
+** 
+** You should have received a copy of the GNU Library General Public License
+** along with XSB; if not, write to the Free Software Foundation,
+** Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** 
+*/
+
+:- compiler_options([sysmod,xpp_on]).
+
+#include "builtin.h"
+
+:- import base64_ops/3 from machine.
+:- import
+        %%warning/1,
+        abort/1
+   from standard.
+
+:- export
+        b64_enc/2,
+        b64_dec/2.
+
+%% b64_enc(+In,?Out)
+%% In can be a charlist (of byte-sized chars), atom, or file(filename)
+b64_enc(In,Out) :-
+        (atom(In) ; is_list(In) ; (nonvar(In), In = file(FN), atom(FN))),
+        !,
+        base64_ops(BASE64_ENC,In,Out).
+b64_enc(In,_Out) :-
+        abort(['b64_enc: invalid argument #1, ', In]).
+
+%% b64_dec(+In,?Out)
+%% Out can be atom, Var, file(filename), or list(list-or-var)
+b64_dec(In,Out) :-
+        atom(In),
+        (atom(Out)
+        ; var(Out)
+        ; (Out = file(FN), atom(FN))
+        ; Out = list(FN)
+        ),
+        !,
+        base64_ops(BASE64_DEC,In,Out).
+b64_dec(In,Out) :-
+        abort(['b64_dec: invalid argument #1, ', In,
+               '; or argument #2 ', Out]).

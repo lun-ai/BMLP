@@ -1,0 +1,3 @@
+
+Only curl.h is included directly in curl2pl.c
+Other files here are included from curl.h
