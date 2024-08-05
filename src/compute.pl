@@ -26,7 +26,7 @@ lm_fixpoint(smp,Path,P,Depth) :-
     consult(SqM),
     fixedpoint(smp,Path,[P,1],[V0,0],Depth).
 fixedpoint(smp,Path,[MName,N],[VName,N1],Depth) :-
-    mname(VName,'new',VName1),
+    mname(VName,'temp',VName1),
 	[VName1,N1] @@ Path is_lmatrix_p [VName,N1] @@ Path * [MName,N] @@ Path,
 	% check for closure
 	\+(lm_submatrix([VName1,N1],[VName,N1])),

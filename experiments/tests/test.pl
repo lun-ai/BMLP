@@ -1,6 +1,6 @@
 :- use_module(library(random)).
-:- [utils].
-:- [lmarith].
+:- ['src/utils'].
+:- ['src/lmarith'].
 
 :- begin_tests(max_integer_size).
 
@@ -19,3 +19,11 @@ test(set_max_integer_size) :-
     ).
 
 :- end_tests(max_integer_size).
+
+:- begin_tests(rms).
+
+:- end_tests(rms).
+
+:- begin_tests(smp).
+
+:- end_tests(smp).

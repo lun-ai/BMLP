@@ -8,7 +8,7 @@
 % default max integer binary shift size is 2175
 % when exceeding this bound an resource error is given
 
-default(max_integer_size(10000)).
+default(max_integer_size(100000)).
 %:- set_prolog_flag(stack_limit,16000000000).
 
 set_max_integer_size :-

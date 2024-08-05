@@ -49,14 +49,14 @@ M @@ Path is_lmatrix_p A @@ Path + B @@ _ :- !,
 M @@ Path is_lmatrix_p M @@ Path:- !, nonvar(M), nonvar(Path), !.
 
 
-% Square of lmatrices
+% Square of matrices
 
 lm_square(Path,[P,M1],[P,M2]) :- M2 is M1*2,
-    lm_prod_trans(Path,[P,M1],[_TP,_TP_M1]),
+%    lm_prod_trans(Path,[P,M1],[_TP,_TP_M1]),
 	lm_prod(Path,[P,M1],[P,M1],[P,M2]), !.
 
 lm_square_p(Path,[P,M1],[P,M2]) :- M2 is M1*2,
-    lm_prod_trans_p(Path,[P,M1],[_TP,_TP_M1]),
+%    lm_prod_trans_p(Path,[P,M1],[_TP,_TP_M1]),
 	lm_prod_p(Path,[P,M1],[P,M1],[P,M2]), !.
 
 

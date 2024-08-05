@@ -11,20 +11,22 @@ repo=${2}/${3}
 cur_dir=$(pwd)
 
 if [[ $3 == "partial" ]]; then
-  nodes=(1000 2000)
+  nodes=(1000 2000 3000 4000 5000)
+#  nodes=(1000 2000)
   p=(0.001)
 else
-  nodes=(1000)
-  p=(0.0001 0.001 0.01 0.1 0.5 1)
+  nodes=(5000)
+#  p=(0.0001 0.001 0.01 0.1 0.5 1)
+  p=(0.5 1)
 fi
 
 for k in "${nodes[@]}"
 do
   for j in "${p[@]}"
   do
-      for i in $(seq 1 1)
+      for i in $(seq 1 10)
       do
-        swipl -s ./${repo}/generate_BK.pl -g "generate_background($j,$k),halt" -q
+        swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),halt" -q
         case $method in
   # BMLP
           bmlp-smp)
