@@ -8,19 +8,23 @@ trap '' HUP INT
 ############################## connect ####################################
 method=$1
 repo=${2}/${3}
+cur_dir=$(pwd)
 
-for k in 1000
+if [[ $3 == "partial" ]]; then
+  nodes=(1000 2000)
+  p=(0.001)
+else
+  nodes=(1000)
+  p=(0.0001 0.001 0.01 0.1 0.5 1)
+fi
+
+for k in "${nodes[@]}"
 do
-  for j in 0.001
+  for j in "${p[@]}"
   do
-#for k in 1000
-#do
-#  for j in 0.0001 0.001 0.01 0.1 0.5 1
-#  do
       for i in $(seq 1 1)
       do
-        cur_dir=$(echo "$PWD")
-        swipl -s ${repo}/generate_BK.pl -g "generate_background($j,$k),halt" -q
+        swipl -s ./${repo}/generate_BK.pl -g "generate_background($j,$k),halt" -q
         case $method in
   # BMLP
           bmlp-smp)
@@ -39,14 +43,14 @@ do
   # B-Prolog
           bpl)
           cd ${repo}
-          ${cur_dir}/BProlog/bp -s 40000000 -g "consult(b_prolog),compute" | sed -n "4p"
-          (cd ${cur_dir} || exit) > /dev/null
+          ${cur_dir}/experiments/BProlog/bp -s 40000000 -g "consult(b_prolog),compute" | sed -n "4p"
+          cd ${cur_dir} - > /dev/null
           ;;
   # XSB-Prolog
           xsbpl)
           cd ${repo}
-          ${cur_dir}/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
-          (cd ${cur_dir} || exit) > /dev/null
+          ${cur_dir}/experiments/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
+          cd ${cur_dir} > /dev/null
           ;;
   # Clingo
           clg)
