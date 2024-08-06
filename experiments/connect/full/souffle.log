@@ -1,0 +1,24 @@
+{
+ "root": {
+  "program": {
+   "configuration": {
+    "": "souffle.dl",
+    "fact-dir": "",
+    "jobs": "1",
+    "output-dir": "",
+    "relationCount": "2",
+    "version": "UNKNOWN"
+   },
+   "starttime": { "time": 24445706506},
+   "usage": {
+    "timepoint": {
+     "24445706587": {
+      "maxRSS": 2244,
+      "systemtime": 3193,
+      "usertime": 0
+     }
+    }
+   }
+  }
+ }
+}
