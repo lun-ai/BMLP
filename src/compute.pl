@@ -17,10 +17,8 @@ lm_fixpoint(smp,Path,P,Depth) :-
     marking(S),!,
     cton(Q,S,X),
     lm_stob1([X],BXs),
-    % initialise initial marking as a one-hot vector
+    % initialise input as a one-hot vector
     mname(P,'v',V0),
-%    M1 @@ Path is_lmatrix_p [P,1] @@ Path \/ 1,        % M = R + I (identify matrix)
-%    lm_prod_trans(Path,M1,_),
     write_row_matrix(Path,V0,0,0,BXs),
     atomic_list_concat([Path,P,'1'],SqM),
     consult(SqM),

@@ -41,17 +41,6 @@ appends([H|T],R) :-
 	appends(T,R1),
 	append(H,R1,R).
 
-% append([],L,L).
-% append([H|T],L,[H|I]) :-
-%	append(T,L,I).
-
-%member(X,[X|_]).
-%member(X,[_|T]) :-
-%	member(X,T).
-
-% not(X) :- X, !, fail.
-% not(_) :- !.
-
 writes([H|T]) :-
 	mywrite(H),
 	writes(T), !.
@@ -282,6 +271,10 @@ sum_elements_in_list(L,Sum):-
 my_plus(A,B,C) :-
     C is A + B.
 
+
+new_value(Args,Key,NewValue,Value) :-
+    \+ var(Key),
+    (get_arg(Args,Key,Value1) -> Value=Value1;Value=NewValue).
 
 get_arg(Args,Key,Value) :-
     member((Key=Value),Args),!.
