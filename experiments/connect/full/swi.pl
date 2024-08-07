@@ -1,4 +1,4 @@
-:- ['src/lmatrix.pl'].
+:- ['bmlp/lmatrix.pl'].
 :- [background].
 
 %:- set_prolog_flag(table_space, 16000000000).

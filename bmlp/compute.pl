@@ -1,17 +1,31 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   BMLP modules
+%   Author: Lun Ai and S.H. Muggleton
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 :- discontiguous lm_fixpoint/4, fixedpoint/5, fixedpoint_/5.
 :- use_module(library(time)).
 
-compute(BasePath,Depth) :-
-    computation_mode(M),
-    mode(P,_),
-    call_time(lm_fixpoint(M,BasePath,P,Depth),Stats),
-    get_dict(cpu,Stats,CpuT),
-    writeln(CpuT).
-%    profile(lm_fixpoint(M,BasePath,P,Depth),[time(cpu)]).
+compute(A,B,C) :-
+    compute(A,B,C,_Args).
+compute(rms,[matrix(P,[Q,Q],Dim)],[matrix(P3,[Q,Q],Dim)],Args) :-
+    srcPath(Path),
+    atom_concat(P,'_rms',P1),
+    new_value(Args,output_id,P1,P2),
+    lm_fixpoint(rms,Path,P,P2,Depth),
+    atom_concat(P2,Depth,P3).
+compute(smp,[vector(V1,[Q]),matrix(P,[Q,Q])],[vector(P3,[Q])],Args) :-
+    srcPath(Path),
+    lm_fixpoint(smp,Path,P,_Depth),
+    atom_concat(P1,'_smp',P2),
+    new_value(Args,output_id,P2,P3).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% using square matrices (specialised)
+% Selective matrix product (SMP)
 lm_fixpoint(smp,Path,P,Depth) :-
     mode(P,[Q,Q]),
     marking(S),!,
@@ -36,19 +50,19 @@ fixedpoint(smp,_,_,[_,Depth],Depth) :-	% Reached fixed point
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% using square matrices
-lm_fixpoint(rms,Path,P,Depth) :-
+% Repeated matrix squaring (RMS)
+lm_fixpoint(rms,Path,P,P1,Depth) :-
     atomic_list_concat([Path,P,'1'],LMatrix),
     consult(LMatrix),
-    M1 @@ Path is_lmatrix_p [P,1] @@ Path \/ 1,         % M = R + I (identify matrix)
-    fixedpoint(rms,Path,M1,1,Depth).
-%	fixedpoint(rms,Path,M1,1,Depth),writes(['Fixed point is ',Depth,'\n']).
+    % M = R + I (identify matrix)
+    [P1,1] @@ Path is_lmatrix_p [P,1] @@ Path \/ 1,
+    fixedpoint(rms,Path,[P1,1],1,Depth).
 fixedpoint(rms,Path,M1,N1,Depth) :-
-	M2 @@ Path is_lmatrix_p M1 @@ Path ^2,              % M^2n = M^n x M^n repeated squaring
-%	writes(['At depth ', N1, ' ... \n']),
-	\+(lm_submatrix(M2,M1)), N2 is N1*2,                % check for closure
-	% writes([M1,' is a proper subset of ',M2,'\n']),
-	fixedpoint(rms,Path,M2,N2,Depth), !.
+    % M^2n = M^n x M^n repeated squaring
+	M2 @@ Path is_lmatrix_p M1 @@ Path ^2,
+	% check for closure
+	\+(lm_submatrix(M2,M1)),!,N2 is N1*2,
+	fixedpoint(rms,Path,M2,N2,Depth).
 fixedpoint(rms,_,_,Depth,Depth) :-	% Reached fixed point
 	!.
 
@@ -87,28 +101,3 @@ fixedpoint(rms,_,_,Depth,Depth) :-	% Reached fixed point
 %    % next iteration
 %    fixedpoint_(ime,Path,P,N4,SNum).
 %fixedpoint_(ime,_,_,N,N) :- !.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% swi prolog
-%:- set_prolog_flag(table_space, 16000000000).
-%:- set_prolog_flag(stack_limit, 16000000000).
-%lm_fixpoint(swipl,_,_,_) :-
-%    target(P),
-%    table(P/2),
-%    current_predicate(marking/1),!,
-%    marking(S),
-%    call_time(closure(P,S),Stats),
-%    get_dict(cpu,Stats,CpuT),
-%    writeln(CpuT).
-%lm_fixpoint(swipl,_,_,_) :-
-%    target(P),
-%    table(P/2),
-%    call_time(closure(P),Stats),
-%    get_dict(cpu,Stats,CpuT),
-%    writeln(CpuT).
-%
-%closure(P,C1) :- call(P,C1,_C2), fail.
-%closure(_,_).
-%closure(P) :- call(P,_C1,_C2), fail.
-%closure(_).

@@ -10,7 +10,7 @@ repo=${2}
 cur_dir=$(pwd)
 
 if [[ $1 == "all" ]]; then
-  methods=("bpl" "xsbpl")
+  methods=("xsbpl")
 else
   methods=(${1})
 fi
@@ -21,8 +21,8 @@ if [[ $3 == "partial" ]]; then
   p=(0.001)
 else
   nodes=(5000)
-  p=(0.0001)
-#  p=(0.5 1)
+#  p=(0.0001 0.001 0.01 0.1 0.5 1)
+  p=(0.5)
 fi
 
 for k in "${nodes[@]}"; do

@@ -1,10 +1,9 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %	Set arithmetic
+%	Author: Lun Ai and S.H. Muggleton
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-:- [utils].
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- op(700,xfy,is_set). 		% Set expression evaluation
 :- op(500,yfx,'--').		% Set minus intersection

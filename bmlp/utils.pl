@@ -1,8 +1,9 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %	Utilities
+%	Author: Lun Ai and S.H. Muggleton
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % SWI-Pl 9.2 requires setting max_integer byte size
 % default max integer binary shift size is 2175
@@ -274,10 +275,11 @@ my_plus(A,B,C) :-
 
 new_value(Args,Key,NewValue,Value) :-
     \+ var(Key),
-    (get_arg(Args,Key,Value1) -> Value=Value1;Value=NewValue).
+    get_arg(Args,Key,Value1),
+    (\+var(Value1) -> Value=Value1;Value=NewValue).
 
 get_arg(Args,Key,Value) :-
-    member((Key=Value),Args),!.
+    memberchk((Key=Value),Args),!.
 
 % skip if term is T
 write_fact('') :- !.
@@ -318,3 +320,22 @@ write_facts_to_file(Facts,Path) :-
     tell(Path),
     write_facts(Facts),
     told.
+
+
+create_row_matrix(Path,P,M,Mf) :-
+    mfname(Path,P,M,Mf),
+    tell(Mf),
+    told.
+write_row_matrix(Path,P,M,N,BitSet) :-
+    create_row_matrix(Path,P,M,_),
+    write_row_matrix(Path,P,M,N,BitSet,write).
+write_row_matrix(Path,P,M,N,BitSet,Mode) :-
+    mname(P,M,P_M),
+    mfname(Path,P,M,Mf),
+    write_row_matrix_(Mf,P_M,N,BitSet,Mode),
+    consult(Mf).
+write_row_matrix_(Mf,M,N,BitSet,Mode) :-
+    set_max_integer_size,
+    open(Mf,Mode,Str),
+    writes(Str,[M,"(",N,",",BitSet,").",'\n']),
+    close(Str).

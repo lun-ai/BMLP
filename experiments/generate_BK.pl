@@ -1,4 +1,4 @@
-:- ['src/lmatrix.pl'].
+:- ['bmlp/utils.pl'].
 :- use_module(library(random)).
 
 :- set_prolog_flag(stack_limit, 16000000000).

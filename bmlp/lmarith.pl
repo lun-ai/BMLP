@@ -1,13 +1,10 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %	Logical Matrix arithmetic package
 %	Author: Lun Ai and S.H. Muggleton
-%	Date:
 %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- [setarith].
-:- [utils].
 :- use_module(library(thread)).
 % SWI-Pl 9.2 requires setting max_integer byte size
 
@@ -200,8 +197,9 @@ pprod_p__(_,_,_,_,-1).
 % Add diagonal to a given logical matrix
 
 lm_add_diagonal(Path,[P,M],[Pu,M]) :-
-	name(P,P1), name('1U',U1),
-	appends([P1,U1],Pu1), name(Pu,Pu1),
+	name(P,P1),
+	(nonvar(Pu);(name('1U',U1),appends([P1,U1],Pu1))),
+	name(Pu,Pu1),
 	mfname(Path,Pu,M,Mfname),
 	tell(Mfname),
 	pdiagonal([P,M],[Pu,M]),
@@ -508,6 +506,16 @@ lm_ltob([B|Bl],Bs1,Bs2) :-
     Bs3 is (Bs1 \/ B) << 1,
     lm_ltob(Bl,Bs3,Bs2),!.
 
+lm_btol(Bs,D,Bl) :-
+    set_max_integer_size,
+    D1 is D - 1,
+    numlist(0,D1,L),
+    lm_btol_(Bs,L,Bl).
+lm_btol_(Bs,L,Bl) :-
+    lm_btos1(Bs,S),
+    findall(B,(member(I,L),(memberchk(I,S) -> B=1;B=0)),Bl).
+
+
 count_ones(Bs,N) :-
     set_max_integer_size,
     count_ones(Bs,0,N).
@@ -538,20 +546,18 @@ reverse_bs(Bs1,Bs2) :-
     findall(N2,(member(N1,S1),N2 is L-N1),S2),
     lm_stob1(S2,Bs2).
 
-create_row_matrix(Path,P,M,Mf) :-
-    mfname(Path,P,M,Mf),
-    tell(Mf),
-    told.
-write_row_matrix(Path,P,M,N,BitSet) :-
-    create_row_matrix(Path,P,M,_),
-    write_row_matrix(Path,P,M,N,BitSet,write).
-write_row_matrix(Path,P,M,N,BitSet,Mode) :-
-    mname(P,M,P_M),
-    mfname(Path,P,M,Mf),
-    write_row_matrix_(Mf,P_M,N,BitSet,Mode),
-    consult(Mf).
-write_row_matrix_(Mf,M,N,BitSet,Mode) :-
-    set_max_integer_size,
-    open(Mf,Mode,Str),
-    writes(Str,[M,"(",N,",",BitSet,").",'\n']),
-    close(Str).
+
+lm_consult(matrix(P,_,_)) :-
+    consult(P).
+lm_unload(matrix(P,_,_)) :-
+    unload_file(P).
+lm_print(matrix(P,[T,T],[D,D])) :-
+    format('~w (~wx~w):\n',[P,D,D]),
+    lm_print_(P,T,D).
+lm_print_(P,T,D) :-
+    call(P,X,Y),
+    cton(T,C,X),
+    lm_btol(Y,D,L),
+    atomics_to_string(L,' ',A),
+    format('~w\t|~w|\n',[C,A]),
+    fail.
