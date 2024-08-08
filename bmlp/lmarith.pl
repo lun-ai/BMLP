@@ -60,7 +60,8 @@ lm_square_p(Path,[P,M1],[P,M2]) :- M2 is M1*2,
 % lm_prod/4 - Ms is product of matrices M1,M2
 
 lm_prod(Path,[P1,M1],[P2,M2],[P3,M3]) :-
-    (nonvar(P3),(nonvar(M3);M3 is M1+M2)),
+    nonvar(P3),
+    (nonvar(M3);M3 is M1+M2),
 	mfname(Path,P3,M3,M3name),
 	tell(M3name),
 	pprod([P1,M1],[P2,M2],[P3,M3]),
@@ -145,14 +146,10 @@ lm_prods(Path,P,[D|Ds],M) :-
 % future work: dedicated helpers for the compiler to optimise
 
 pprod([P1,M1],[P2,M2],[P3,M3]) :-
-    % Name of Transpose Matrix
-%	mname(t,P2,TP), mname(TP,M2,TP_M2),
     mname(P2,M2,P_M2),
 	mname(P1,M1,P_M1), mname(P3,M3,P_M3),
 	call(P_M1,X,BXs),
 	lm_btos1(BXs,BXS),
-%	findall(Y,(call(P_M2,Y,BYs),BZs is BXs/\BYs,BZs>0),Ys1),
-%	lm_stob1(Ys1,BYs1),
     findall(BYs,(member(Y,BXS),call(P_M2,Y,BYs)),BYs),
     foldl(or,BYs,0,BYs1),
 	writes([P_M3,'(',X,',',BYs1,').','\n']), fail.
@@ -222,7 +219,7 @@ pdiagonal([P,M],[Pu1,M]) :-
 %	call(TP_M,X,_), lm_add_diagonal1(TP_M,X,Y),
 %	writes([TPu1_M,'(',X,',',Y,')','.','\n']), fail.
 pdiagonal(_,_).
-	
+
 
 element(X,[X|_]).
 element(X,[_|T]) :- element(X,T).
@@ -374,7 +371,6 @@ lm_add(Path,[P1,M1],[P2,M2],[P3,M3]) :-
     mname(P2,M2,P_M2),
     mfname(Path,P3,M3,M3fname),
     tell(M3fname),
-	writes(['% Union between two matrices ',M1,' and ',M2,'\n']),
 	told,
     forall((call(P_M1,X,Y1),call(P_M2,X,Y2)),
             (
@@ -452,7 +448,7 @@ lm_stob(Set,Bitset) :-
 
 lm_stob([],Bs,Bs) :- !.
 lm_stob([H|T],Bs1,Bs2) :-
-	cton(H,N),
+	cton(_,H,N),
 	Bs3 is Bs1\/1<<N,
 	lm_stob(T,Bs3,Bs2), !.
 
@@ -554,6 +550,9 @@ lm_unload(matrix(P,_,_)) :-
 lm_print(matrix(P,[T,T],[D,D])) :-
     format('~w (~wx~w):\n',[P,D,D]),
     lm_print_(P,T,D).
+lm_print(matrix(P,[T],[D])) :-
+    format('~w (~wx~w):\n',[P,1,D]),
+    lm_print_(P,T,D).
 lm_print_(P,T,D) :-
     call(P,X,Y),
     cton(T,C,X),
@@ -561,3 +560,4 @@ lm_print_(P,T,D) :-
     atomics_to_string(L,' ',A),
     format('~w\t|~w|\n',[C,A]),
     fail.
+lm_print_(_,_,_).

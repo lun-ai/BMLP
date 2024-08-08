@@ -15,7 +15,9 @@
         compute/3,
         compute/4,
         lm_consult/1,
-        lm_print/1
+        lm_print/1,
+        lm_select/3,
+        lm_select/4
     ]).
 
 %  core modules
@@ -25,6 +27,7 @@
 :- ['bmlp/compile.pl'].
 :- ['bmlp/compute.pl'].
 :- ['bmlp/utils.pl'].
+:- ['bmlp/test.pl'].
 
 
 
