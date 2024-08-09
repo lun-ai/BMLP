@@ -1,6 +1,6 @@
 *.out
-*.xwam
 *background.pl
+*background.lp
 ./edge*
 ./connect*
 .idea

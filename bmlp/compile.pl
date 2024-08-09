@@ -48,12 +48,14 @@ compile_constants(DB,BasePath,CsPath,[D,D]) :-
 %   record the dimension of each domain
 compile_constants(DB,BasePath,CsPath,[Q1,Q2]) :-
     DB=..[db,P,[T1,T2]],!,
-    setof(A1,call(T1,A1),Cs1),
-    setof(A2,call(T2,A2),Cs2),
-    length(Cs1,Q1),
-    length(Cs2,Q2),
+    bagof(A1,call(T1,A1),Cs1),
+    bagof(A2,call(T2,A2),Cs2),
+    predsort(term_numerical_order,Cs1,Cs3),
+    predsort(term_numerical_order,Cs2,Cs4),
+    length(Cs3,Q1),
+    length(Cs4,Q2),
     atom_list_concat([BasePath,P,'_hbn.pl'],CsPath),
-    lm_mkcton_mul([(T1,Cs1),(T2,Cs2)],CsPath).
+    lm_mkcton_mul([(T1,Cs3),(T2,Cs4)],CsPath).
 compile_constants(_,_,_,_) :-
     throw(error(bmlp_compilation_error(constants),_)).
 

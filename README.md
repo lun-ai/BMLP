@@ -52,9 +52,17 @@ To reproduce results in the paper, you can run the following cmd in the BMLP/ ro
 ```bash run_exp.sh SYSTEM_NAME experiments/networks/connect/SUB_FOLDER REP```
 
 SYSTEM_NAME maps to the following systems (some require installation):
+
+```commandline
+unzip experiments/systems.zip 
+cd experiments/XSB/build
+./configure
+./makexsb
+```
+
 - all:   run all
 - bpl:   B-Prolog (binary in BProlog/)
-- xsbpl: XSB-Prolog (binary in XSB/bin or following the XSB/doc/userman/manual1.pdf)
+- xsbpl: XSB-Prolog (Installlation info XSB/doc/userman/manual1.pdf)
 - swipl: SWI-Prolog (Install from https://www.swi-prolog.org/Download.html)
 - clingo: Clingo (install from https://github.com/potassco/clingo/releases/)
 - souffle: Souffle (binary in Souffle/ or following instructions from https://souffle-lang.github.io/build)

@@ -343,13 +343,15 @@ write_row_matrix_(Mf,M,N,BitSet,Mode) :-
 term_numerical_order(Sign,X,Y) :- !,
     atom_codes(X,Xc),
     atom_codes(Y,Yc),
-    sum_elements_in_list(Xc,Xv),
-    sum_elements_in_list(Yc,Yv),
-    term_numerical_order_(Sign,Xv,Yv).
-term_numerical_order_('<',X,Y) :-
-    X < Y,!.
-term_numerical_order_('>',X,Y) :-
-    X > Y,!.
-term_numerical_order_('=',X,Y) :-
-    X >= Y,
-    X =< Y,!.
+    length(Xc,XL),
+    length(Yc,YL),
+    term_numerical_order_(Sign,X,XL,Y,YL).
+term_numerical_order_('<',_,XL,_,YL) :-
+    XL < YL,!.
+term_numerical_order_('>',_,XL,_,YL) :-
+    XL > YL,!.
+term_numerical_order_('<',X,_,Y,_) :-
+    X @< Y,!.
+term_numerical_order_('>',X,_,Y,_) :-
+    X @> Y,!.
+term_numerical_order_('=',_,_,_,_) :- !.

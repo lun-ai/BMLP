@@ -20,9 +20,9 @@ if [[ $3 == "partial" ]]; then
 #  nodes=(1000 2000)
   p=(0.001)
 else
-  nodes=(1000)
+  nodes=(5000)
 #  p=(0.0001 0.001 0.01 0.1 0.5 1)
-  p=(0.1)
+  p=(0.0001 0.001 0.01 0.1)
 fi
 
 for k in "${nodes[@]}"; do
@@ -57,7 +57,7 @@ for k in "${nodes[@]}"; do
     # Clingo
             clg)
             cp ${repo}/background.pl ${repo}/background.lp
-            clingo -q --time-limit=5000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
+            clingo -q --time-limit=15000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
             ;;
     # Souffle
             souffle)
