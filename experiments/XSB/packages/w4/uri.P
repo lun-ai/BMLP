@@ -1,5 +1,0 @@
-:- export urireference/2.
-
-urireference( [], [] ) :- !.
-urireference( Text, URI ) :-
-	atom_codes( URI, Text ).

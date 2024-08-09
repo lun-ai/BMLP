@@ -1,7 +1,10 @@
 *.out
 *.xwam
 *background.pl
-edge*
-connect*
+./edge*
+./connect*
 .idea
 test
+experiments/BProlog
+experiments/XSB
+experiments/Souffle

@@ -69,39 +69,3 @@ fixedpoint(rms,Path,Ml_init,Ml_temp,Ml_final) :-
 fixedpoint(rms,Path,Ml_init,Ml_temp,Ml_final) :-	% Reached fixed point
     Ml_final @@ Path is_lmatrix_p Ml_temp @@ Path * Ml_init @@ Path,
 	!.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% implementation for iterative extension method
-%   working best for multi-arity datalog
-
-%lm_fixpoint(ime,Path,P,_Depth) :-
-%    atomic_list_concat([Path,P,'1'],LMatrix),
-%    consult(LMatrix),
-%    % compute the transpose of the boolean matrix
-%    lm_prod_trans(Path,[P,2],_),
-%    % calculate the fixpoint
-%    call_time(fixedpoint(ime,Path,P,_SNum),Stats),
-%    get_dict(cpu,Stats,CpuT),
-%    writeln(CpuT).
-%fixedpoint(ime,Path,P,_) :-
-%    mode(P,[Q,Q]),
-%    marking(S),!,
-%    cton(Q,S,X),
-%    lm_stob1([X],BXs),
-%    % initialise initial marking as a one-hot vector
-%    write_row_matrix(Path,P,5,0,BXs),
-%    fixedpoint_(ime,Path,P,5,_).
-%fixedpoint(ime,_,_,_) :- !.
-%fixedpoint_(ime,Path,P,N,SNum) :-
-%    N2 is N + 2,
-%    all_submatrix(Path,[P,N],[P,1],[P,N2]),
-%%    N2 is N1 + 2,
-%%    lm_subtract(Path,[P,N1],[P,2],[P,N2]),
-%    lm_prod(Path,[P,N2],[P,2],[P,N3]),
-%    N4 is N + 10,
-%    lm_add(Path,[P,N],[P,N3],[P,N4]),
-%    \+lm_eq([P,N],[P,N4]),!,
-%    % next iteration
-%    fixedpoint_(ime,Path,P,N4,SNum).
-%fixedpoint_(ime,_,_,N,N) :- !.

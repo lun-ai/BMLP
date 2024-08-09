@@ -1,3 +1,0 @@
-Subject:  XSB installation log
-
-

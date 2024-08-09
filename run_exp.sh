@@ -20,9 +20,9 @@ if [[ $3 == "partial" ]]; then
 #  nodes=(1000 2000)
   p=(0.001)
 else
-  nodes=(5000)
+  nodes=(1000)
 #  p=(0.0001 0.001 0.01 0.1 0.5 1)
-  p=(0.5)
+  p=(0.1)
 fi
 
 for k in "${nodes[@]}"; do
@@ -33,17 +33,14 @@ for k in "${nodes[@]}"; do
           case $method in
     # BMLP
             bmlp-smp)
-            swipl -s ${repo}/swi.pl -t 'test(smp)' -q
+            swipl -s ${repo}/swi_bmlp.pl -t 'compute' -q
             ;;
-  #          bmlp-ime)
-  #          swipl -s ${repo}/swi.pl -t 'test(ime)' -q
-  #          ;;
             bmlp-rms)
-            swipl -s ${repo}/swi.pl -t 'test(rms)' -q
+            swipl -s ${repo}/swi_bmlp.pl -t 'compute' -q
             ;;
     # SWI-Prolog
             swipl)
-            swipl -s ${repo}/swi.pl -t 'test(swipl)' -q
+            swipl -s ${repo}/swi.pl --stack_limit=16000000000 -t 'compute' -q
             ;;
     # B-Prolog
             bpl)
@@ -64,10 +61,10 @@ for k in "${nodes[@]}"; do
             ;;
     # Souffle
             souffle)
-            swipl -s ${repo}/generate_BK.pl -g "conversion_background_to_dl,halt" -q
+            swipl -s experiments/generate_BK.pl -g "background_to_dl('${repo}'),halt" -q
             cd ${repo}
-            ${cur_dir}/experiments/Souffle/souffle -c -F . -D . souffle.dl -p souffle.log
-            ${cur_dir}/experiments/Souffle/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
+            ${cur_dir}/experiments/Souffle/src/souffle -c -F . -D . souffle.dl -p souffle.log
+            ${cur_dir}/experiments/Souffle/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
             cat ${j}pe_${k}nodes.html | grep "data={" | sed 's/.*\[//' | sed 's/,.*//'
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null

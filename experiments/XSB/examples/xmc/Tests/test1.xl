@@ -1,5 +1,0 @@
-
-p ::= action(a); p.
-
-poss_b += <b>tt \/ <->poss_b.
-

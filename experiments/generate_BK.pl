@@ -19,18 +19,11 @@ generate_background(PE,N,Path) :-
     write_facts(ConnectionsNoDupl),
     told.
 
-conversion_background_to_dl(Path) :-
+background_to_dl(Path) :-
     atom_concat(Path,'/background.pl',BK),
     atom_concat(Path,'/edge.facts',Facts),
     consult(BK),
     tell(Facts),
-    forall(
-        node(C1),
-        (
-            atom_string(C1,S1),
-            write_fact(node(S1))
-        )
-    ),
     forall(
         edge(C1,C2),
         (

@@ -1,13 +1,8 @@
-:- ['bmlp/lmatrix.pl'].
 :- [background].
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% mode declaration and recursive relationship
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-mode(edge,[node,node]).
+:- table connect/2.
 
-marking(c2).
-target(connect).
+:- set_prolog_flag(table_space, 16000000000).
 
 connect(A,B) :-
     edge(A,B).
@@ -15,7 +10,10 @@ connect(A,B) :-
     edge(A,C),
     connect(C,B).
 
-:- prolog_load_context(directory,Path),init(Path).
+closure :- connect(c1,_C2),fail.
+closure.
 
-test(M) :- assertz(computation_mode(M)),
-           compile,compute.
+compute :-
+    call_time(closure,Stats),
+    get_dict(cpu,Stats,CpuT),
+    writeln(CpuT),halt.

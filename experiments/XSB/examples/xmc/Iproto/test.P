@@ -1,8 +1,0 @@
-:- ['../test'].
-:- xlc(i).
-
-test(W,F) :-
-	write('Iproto; Params: = '), write(W),	write(', '), writeln(F),
-	check_all(iproto(W,F),livelock).
-
-

@@ -1,6 +1,0 @@
-
-#  @configure_input@
-XSB_ROOTDIR="@topdir@"
-XSBCONFIG_LIBDIR="@arch_config_libdir@"
-XSBCONFIG_EMUDIR="@emudir@"
-XSBCONFIG_BINDIR="@arch_bindir@"

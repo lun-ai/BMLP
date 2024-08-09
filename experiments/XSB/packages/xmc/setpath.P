@@ -1,1 +1,0 @@
-?- assert(library_directory('/home/ydong/Research/XMC/release00/System')).
