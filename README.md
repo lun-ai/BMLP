@@ -45,24 +45,20 @@ Existing unit tests refer to these examples which can be invoked by
 swipl -s bmlp.pl -t "run_tests"
 ```
 
-## Evaluation
+## Reproducing results
 
-To reproduce results in the paper, you can run the following cmd in the BMLP/ root folder. 
+Run the following cmd in the BMLP/ root folder.
 
 ```bash run_exp.sh SYSTEM_NAME experiments/networks/connect/SUB_FOLDER REP```
 
 SYSTEM_NAME maps to the following systems (some require installation):
 
 ```commandline
-unzip experiments/systems.zip 
-cd experiments/XSB/build
-./configure
-./makexsb
+unzip experiments/systems.zip
 ```
 
-- all:   run all
 - bpl:   B-Prolog (binary in BProlog/)
-- xsbpl: XSB-Prolog (Installlation info XSB/doc/userman/manual1.pdf)
+- xsbpl: XSB-Prolog (Install from XSB/doc/userman/manual1.pdf)
 - swipl: SWI-Prolog (Install from https://www.swi-prolog.org/Download.html)
 - clingo: Clingo (install from https://github.com/potassco/clingo/releases/)
 - souffle: Souffle (binary in Souffle/ or following instructions from https://souffle-lang.github.io/build)
