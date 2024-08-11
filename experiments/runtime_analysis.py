@@ -13,12 +13,12 @@ import re
 colors = list(mcolors.TABLEAU_COLORS.values())
 
 names = {
-    'swipl': 'SWI-Prolog + tabling',
-    'bmlp-rms': 'SWI-Prolog + BMLP-RMS',
-    'bmlp-smp': 'SWI-Prolog + BMLP-SMP',
-    'bpl': 'B-Prolog + tabling',
+    'swipl': 'SWI-Prolog*',
+    'bmlp-rms': 'BMLP-RMS',
+    'bmlp-smp': 'BMLP-SMP',
+    'bpl': 'B-Prolog*',
     'clg': 'Clingo',
-    'xsbpl': 'XSB-Prolog + tabling',
+    'xsbpl': 'XSB-Prolog*',
     'souffle': 'Souffle'
 }
 
@@ -32,6 +32,8 @@ markers = {
     'xsbpl': ['x', colors[5]],
     'souffle': ['x', colors[6]]
 }
+
+OT = 10000
 
 
 # experiment 1
@@ -67,23 +69,25 @@ def compare_runtime(Path, pes, N, methods):
         print(data[-1])
         for p_ in data.keys():
             if p_ > 0:
-                print('$' + str(np.around(np.mean(data[p_]), 3)) + ' \\pm ' + str(np.around(np.std(data[p_]), 3)) + '$')
+                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
                 p.append(p_)
-                u.append(min(np.mean(runtimes), 300))
+                u.append(min(np.mean(runtimes), OT))
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
         plt.errorbar(np.log10(p), np.log10(u), markerfacecolor=markers[data[-1]][1], marker=markers[data[-1]][0],
                      color=markers[data[-1]][1],
                      markersize=7,
                      label=names[data[-1]], ls='-', elinewidth=0.1, capsize=0)
-        # plt.fill_between(np.log10(p), np.array(u) - np.array(sterr), np.array(u) + np.array(sterr), color=markers[data[-1]][2],
+        # plt.fill_between(np.log10(p), np.array(u) - np.array(sterr), np.array(u) + np.array(sterr),
+        #                  color=markers[data[-1]][1],
         #                  alpha=0.2)
         plt.xticks(np.round(np.log10(p), 2))
     plt.xlabel(r'Density of edges, $p_t$ ($log_{10}$)', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
     # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
-    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
+    labels, handles = zip(
+        *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13})
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime.png')
@@ -120,7 +124,7 @@ def compare_runtime_2(Path, pe, MaxN, methods):
         print(data[-1])
         for p_ in data.keys():
             if p_ > 0:
-                print('$' + str(np.around(np.mean(data[p_]), 3)) + ' \\pm ' + str(np.around(np.std(data[p_]), 3)) + '$')
+                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
                 p.append(p_)
                 u.append(np.mean(runtimes))
@@ -130,14 +134,15 @@ def compare_runtime_2(Path, pe, MaxN, methods):
                      color=markers[data[-1]][1],
                      markersize=7,
                      ls='-', elinewidth=0.1, capsize=0)
-        # plt.fill_between(p, np.array(u) - np.array(sterr), np.array(u) + np.array(sterr), color=markers[data[-1]][2],
+        # plt.fill_between(p, np.array(u) - np.array(sterr), np.array(u) + np.array(sterr), color=markers[data[-1]][1],
         #                  alpha=0.2)
         plt.xticks(p)
     plt.xlabel('No. nodes', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
     # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
-    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
+    labels, handles = zip(
+        *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13})
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime_2.png')
@@ -145,9 +150,9 @@ def compare_runtime_2(Path, pe, MaxN, methods):
 
 compare_runtime('experiments/connect/full/runtime/',
                 [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-                1000,
-                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'xsbpl', 'souffle'])
+                5000,
+                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
 compare_runtime_2('experiments/connect/partial/runtime/',
                   0.001,
                   5000,
-                  ['bmlp-smp', 'clg', 'bpl', 'swipl', 'xsbpl', 'souffle'])
+                  ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])

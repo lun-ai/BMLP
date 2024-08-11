@@ -77,21 +77,38 @@ test(compile_test_p4_with_duplicates) :-
     assertion(edge1(8,512)),
     assertion(edge1(9,0)).
 
-test(compile_test_p5_single_type) :-
+test(compile_test_p5_single_relation) :-
     init('./test'),
-    compile('examples/ex_p5.pl',db(red_to_red,[red,red],_),M1),
+    compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
     lm_consult(M1),
-    assertion(red_to_red1(0,0)),
-    assertion(red_to_red1(1,0)),
-    assertion(red_to_red1(2,0)).
+    assertion(t1(0,0)),
+    assertion(t1(1,0)),
+    assertion(t1(2,0)),
+    assertion(t1(3,0)),
+    assertion(t1(4,2)),
+    assertion(t1(5,0)),
+    assertion(t1(6,1)).
 
-test(compile_test_p5_multiple_types) :-
+test(compile_test_p5_multiple_relations) :-
     init('./test'),
-    compile('examples/ex_p5.pl',db(red_to_blue,[red,blue],_),M1),
+    compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
+    compile('examples/ex_p6.pl',db(g,[set,set],_),M2),
     lm_consult(M1),
-    assertion(red_to_blue1(0,0)),
-    assertion(red_to_blue1(1,0)),
-    assertion(red_to_blue1(2,0)).
+    assertion(t1(0,0)),
+    assertion(t1(1,0)),
+    assertion(t1(2,0)),
+    assertion(t1(3,0)),
+    assertion(t1(4,2)),
+    assertion(t1(5,0)),
+    assertion(t1(6,1)),
+    lm_consult(M2),
+    assertion(g1(0,0)),
+    assertion(g1(1,64)),
+    assertion(g1(2,0)),
+    assertion(g1(3,0)),
+    assertion(g1(4,0)),
+    assertion(g1(5,0)),
+    assertion(g1(6,0)).
 
 :- end_tests(compilation).
 
@@ -156,7 +173,8 @@ test(rms_test_p4_with_duplicates) :-
     assertion(call(M2Name,7,768)),
     assertion(call(M2Name,8,512)),
     assertion(call(M2Name,9,0)).
-test(rms_test_p5_with_cyclees) :-
+
+test(rms_test_p5_with_cycles) :-
     init('./test'),
     compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
@@ -215,5 +233,13 @@ test(smp_test_p4_with_duplicates) :-
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,1016)).
+
+test(rms_test_p5_with_cycles) :-
+    init('./test'),
+    compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
+    lm_select([c2],M1,V1,[output_id='query']),
+    compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+    atomic_list_concat(Ml2,M2Name),
+    assertion(call(M2Name,0,124)).
 
 :- end_tests(smp).

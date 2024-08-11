@@ -36,12 +36,17 @@ ex_2 :- % initialisation
         compute(smp,[V1,M1],V2),
         % print output vector if it has been loaded
         lm_print(V2).
-composed :-
-        init('./test'),
-        compile('examples/ex_p5.pl',db(blue,[b_node,b_node]),M1),
-        compile('examples/ex_p5.pl',db(red,[r_node,r_node]),M2),
-        % use repeated squaring module on M1
-        % produce M2 that is automatically loaded
-        compute(smp,[V1,M1],M2),
-        % print output matrix if it has been loaded
-        lm_print(M2).
+%composed :-
+%        init('./test'),
+%        compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
+%        compile('examples/ex_p6.pl',db(g,[set,set],_),M2),
+%        non_linear(),
+%        % print output matrix if it has been loaded
+%        lm_print(M2).
+%
+%non_linear(matrix(M1,_,_,_),matrix(M2,_,_,_)) :-
+%        lm_submatrix(M1,M2).
+%non_linear(M1,M2,M3) :-
+%        compute(rms,M1,M3),
+%        compute(rms,M3,M4),
+%        non-linear(M4,M2).
