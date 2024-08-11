@@ -96,7 +96,7 @@ lm_prod_trans(Path,[P,M],[TP,TP_M]) :-
 	member(Y,Cols),
 	findall(X,(call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
 	lm_stob1(Xs,BXs),
-	writes([TP_M,'(',Y,',',BXs,').','\n']), fail.
+	write_row_matrix__(TP_M,Y,BXs), fail.
 lm_prod_trans(Path,[P,M],[TP,TP_M]) :- !,
 	told,
 	mname(t,P,TP), mfname(Path,TP,M,Mname),
@@ -125,9 +125,7 @@ lm_prod_trans_p(Path,[P,M],[TP,M]) :-
 lm_prod_trans_p_(Mfname,P_M,TP_M,Y):-
     findall(X,(call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
     lm_stob1(Xs,BXs),
-    open(Mfname,append,Str),
-    writes(Str,[TP_M,'(',Y,',',BXs,').','\n']),
-    close(Str).
+    write_row_matrix_(Mfname,TP_M,Y,BXs,append).
 
 
 % lm_prods of list of lmatrices
@@ -152,7 +150,7 @@ pprod([P1,M1],[P2,M2],[P3,M3]) :-
 	lm_btos1(BXs,BXS),
     findall(BYs,(member(Y,BXS),call(P_M2,Y,BYs)),BYs),
     foldl(or,BYs,0,BYs1),
-	writes([P_M3,'(',X,',',BYs1,').','\n']), fail.
+    write_row_matrix__(P_M3,X,BYs1), fail.
 pprod(_,_,_).
 
 or(A,B,C) :- C is A \/ B.
@@ -167,14 +165,12 @@ pprod_p(Path,[P,M1],[P,M2],[P,M3]) :-
 	concurrent_forall(
 	    call(P_M1,X,_),
 	    (
-	        pprod_p_(P_M1,TP_M2,P_M3,X,Row),
-	        open(M3fname,append,Str),
-	        writes(Str,Row),
-	        close(Str)
+	        pprod_p_(P_M1,TP_M2,X,BYs),
+	        write_row_matrix_(M3fname,P_M3,X,BYs,append)
 	    )
 	),
 	consult(M3fname),!.
-pprod_p_(P_M1,TP_M,P_M3,X,[P_M3,'(',X,',',BYs1,').','\n']) :-
+pprod_p_(P_M1,TP_M,X,BYs1) :-
     call(P_M1,X,BXs),!,
     findall(Y,(call(TP_M,Y,BYs),BXs/\BYs>0),Ys1),
 %    findall(Y,call(TP_M,Y,_),Ys),
@@ -182,12 +178,12 @@ pprod_p_(P_M1,TP_M,P_M3,X,[P_M3,'(',X,',',BYs1,').','\n']) :-
 %    length(Ys1,L),
 %    concurrent_maplist(pprod_p__(P_M1,TP_M,X),Ys,Ys1),
 	lm_stob1(Ys1,BYs1).
-pprod_p__(P_M,TP_M,X,Y,Y) :-
-	call(P_M,X,BXs),
-	call(TP_M,Y,BYs),
-    BZs is BXs/\BYs,
-    BZs>0,!.
-pprod_p__(_,_,_,_,-1).
+%pprod_p__(P_M,TP_M,X,Y,Y) :-
+%	call(P_M,X,BXs),
+%	call(TP_M,Y,BYs),
+%    BZs is BXs/\BYs,
+%    BZs>0,!.
+%pprod_p__(_,_,_,_,-1).
 
 
 
@@ -211,7 +207,7 @@ pdiagonal([P,M],[Pu1,M]) :-
 	writes(['% Matrix with diagonal added','\n']),
 	mname(P,M,P_M), mname(Pu1,M,Pu1_M),
 	call(P_M,X,Y), Y1 is Y\/1<<X,
-	writes([Pu1_M,'(',X,',',Y1,')','.','\n']), fail.
+	write_row_matrix__(Pu1_M,X,Y1), fail.
 %pdiagonal([P,M],[Pu1,M]) :-
 %	writes(['% Transpose Matrix with diagonal added','\n']),
 %	mname(P,M,P_M), mname(Pu1,M,Pu1_M),
@@ -318,9 +314,7 @@ all_submatrix_p(Path,[P,M1],[P,M2],[P,M3]) :-
 all_submatrix_p_(Mfname,P_M1,P_M2,P_M3,X) :-
     lm_submatrix_(X,P_M1,P_M2,Rn),
     lm_stob1(Rn,Y),
-    open(Mfname,append,Str),
-	writes(Str,[P_M3,'(',X,',',Y,').','\n']),
-	close(Str).
+    write_row_matrix_(Mfname,P_M3,X,Y,append).
 
 
 
@@ -409,21 +403,21 @@ lm_mkcton(Cs) :-
 lm_mkcton(Cs,File) :-
     \+number(File),
 	tell(File),
-	writes([':- discontiguous(cton/2), discontiguous(ntoc/2).','\n','\n']),
+	writes([':- discontiguous(bmlp:cton/2), discontiguous(bmlp:ntoc/2).','\n','\n']),
 	lm_mkcton(Cs,0),
 	told, consult(File), !.
 
 lm_mkcton([],_) :- !.
 lm_mkcton([H|T],N) :-
-	portray_clause(cton(H,N)), write(' '),
-	portray_clause(ntoc(N,H)), nl,
+	portray_clause(bmlp:cton(H,N)), write(' '),
+	portray_clause(bmlp:ntoc(N,H)), nl,
 	N1 is N+1,
 	lm_mkcton(T,N1), !.
 
 lm_mkcton_mul(Ps,File) :-
     \+number(File),
 	tell(File),
-	writes([':- discontiguous(cton/3), discontiguous(ntoc/3).','\n','\n']),
+	writes([':- discontiguous(bmlp:cton/3), discontiguous(bmlp:ntoc/3).','\n','\n']),
 	lm_mkcton_mul_(Ps,File),
 	told, consult(File), !.
 
@@ -434,8 +428,8 @@ lm_mkcton_mul_([(P,Cs)|T],File) :-
 
 lm_mkcton(_,[],_) :- !.
 lm_mkcton(P,[H|T],N) :-
-	portray_clause(cton(P,H,N)), write(' '),
-	portray_clause(ntoc(P,N,H)), nl,
+	portray_clause(bmlp:cton(P,H,N)), write(' '),
+	portray_clause(bmlp:ntoc(P,N,H)), nl,
 	N1 is N+1,
 	lm_mkcton(P,T,N1), !.
 
@@ -543,16 +537,25 @@ reverse_bs(Bs1,Bs2) :-
     lm_stob1(S2,Bs2).
 
 
-lm_consult(matrix(P,_,_)) :-
-    consult(P).
-lm_unload(matrix(P,_,_)) :-
-    unload_file(P).
-lm_print(matrix(P,[T,T],[D,D])) :-
-    format('~w (~wx~w):\n',[P,D,D]),
-    lm_print_(P,T,D).
-lm_print(matrix(P,[T],[D])) :-
-    format('~w (~wx~w):\n',[P,1,D]),
-    lm_print_(P,T,D).
+lm_consult(matrix(M,_,_,_)) :-
+    srcPath(BasePath),
+    atomic_list_concat([BasePath|M],F),
+    consult(F).
+lm_unload(matrix(M,_,_,_)) :-
+    srcPath(BasePath),
+    atomic_list_concat([BasePath|M],F),
+    unload_file(F).
+lm_print(matrix(M,[T,T],[D,D],_)) :-
+    atomic_list_concat(M,Mn),
+    format('~w (~wx~w):\n',[Mn,D,D]),
+    lm_print_(Mn,T,D).
+lm_print(matrix(M,[T],[D],_)) :-
+    atomic_list_concat(M,Mn),
+    format('~w (~wx~w):\n',[Mn,1,D]),
+    findall(C,cton(T,C,_),Cs),
+    atomics_to_string(Cs,' ',S),
+    format('\t ~w\n',[S]),
+    lm_print_(Mn,T,D).
 lm_print_(P,T,D) :-
     call(P,X,Y),
     cton(T,C,X),

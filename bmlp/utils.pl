@@ -273,7 +273,7 @@ my_plus(A,B,C) :-
     C is A + B.
 
 
-new_value(Args,Key,NewValue,Value) :-
+assign_name(Args,Key,NewValue,Value) :-
     \+ var(Key),
     get_arg(Args,Key,Value1),
     (\+var(Value1) -> Value=Value1;Value=NewValue).
@@ -337,8 +337,12 @@ write_row_matrix(Path,P,M,N,BitSet,Mode) :-
 write_row_matrix_(Mf,M,N,BitSet,Mode) :-
     set_max_integer_size,
     open(Mf,Mode,Str),
-    writes(Str,[M,"(",N,",",BitSet,").",'\n']),
+    write_row_matrix__(Str,M,N,BitSet),
     close(Str).
+write_row_matrix__(M,N,BitSet) :-
+    writes([bmlp:M,"(",N,",",BitSet,").",'\n']).
+write_row_matrix__(Str,M,N,BitSet) :-
+    writes(Str,[bmlp:M,"(",N,",",BitSet,").",'\n']).
 
 term_numerical_order(Sign,X,Y) :- !,
     atom_codes(X,Xc),

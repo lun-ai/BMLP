@@ -51,7 +51,8 @@ for k in "${nodes[@]}"; do
     # XSB-Prolog
             xsbpl)
             cd ${repo}
-            ${cur_dir}/experiments/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
+#             ${cur_dir}/experiments/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload | sed 's/^.* | ?- //'
+            ${cur_dir}/experiments/XSB/bin/xsb -e "consult(xsb_prolog),compute." --quietload
             cd ${cur_dir} > /dev/null
             ;;
     # Clingo

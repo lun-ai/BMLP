@@ -4,7 +4,7 @@ We provide instructions on usage and results re-generation.
 
 ## Installation
 
-Installing BMLP is straightforward as a module into existing SWI-Prolog code.
+BMLP can be installed as a module into existing SWI-Prolog code at TARGET_FOLDER by running the following commands:
 ```
 git clone git@github.com:lun-ai/BMLP.git
 cp BMLP/bmlp.pl TARGET_FOLDER
@@ -24,19 +24,21 @@ This folder contains methods to support boolean matrix operations in SWI-Prolog.
 
 Some examples in examples/ show how to use BMLP modules.
 
-```swipl -s examples/example.pl -t halt```
+```swipl -s examples/example.pl -t ex_1```
 
-BMLP usage follows "initialisation -> compilation -> computation" if database has not been encoded as a boolean matrix.
+BMLP modules need to be initialised to a folder to save intermediate computation results and the default is directory root. 
+If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
 
 ```
  bmlp :- init,
-         compile('examples/ex_p3.pl',db(edge,[node,node]),M1),
-         compute(rms,[M1],[M2],[output_id='connect']).
+         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
+         compute(rms,[M1],[M2],[output_id='connect'],_).
 ```
 
-Facts in the database, e.g. edge(X:node,Y:node), are referred to by the db/2 term.
-M1 and M2 are matrices with the same format, represented by matrix/3 terms.
-For example, M1 is grounded by ```matrix(edge, [node, node], [10, 10])``` 
+Facts in the database, e.g. edge(X:node,Y:node), are referred to by the _db_ term to focuses on target relation 
+and object types.
+M1 and M2 are matrices with the same format, represented by _matrix_ terms.
+For example, M1 is grounded by ```matrix(edge, [node, node], [10, 10],_)``` 
 since all entities are nodes and its dimension is 10 x 10.
 
 Examples have been provided in the examples/.

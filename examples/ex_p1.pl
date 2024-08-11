@@ -1,6 +1,6 @@
-% no nodes
+% objects with non-continuous naming
 node(c1).
-node(c2).
-node(c3).
+node(c100).
+node(c1000).
 
 

@@ -17,7 +17,7 @@ ex_1 :- % initialisation
         init('./test'),
         % compile facts in DB
         % edges between node pairs as matrix M1
-        compile('examples/ex_p3.pl',db(edge,[node,node]),M1),
+        compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
         % use repeated squaring module on M1
         % produce M2 that is automatically loaded
         compute(rms,M1,M2,[output_id='connect']),
@@ -28,18 +28,18 @@ ex_2 :- % initialisation
         init('./test'),
         % compile facts in DB
         % edges between node pairs as matrix M1
-        compile('examples/ex_p1.pl',db(edge,[node,node]),M1),
+        compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
         % query the database that contains c2 as the first argument
         % encode this query as a vector V1
-        lm_select([c2],M1,V1,[output_id='ex_query']),
+        lm_select([c100],M1,V1,[output_id='ex_query']),
         % produce a vector V2 as the result of query
         compute(smp,[V1,M1],V2),
         % print output vector if it has been loaded
         lm_print(V2).
 composed :-
-        init,
-        compile('examples/ex_p1.pl',db(edge,[node,node]),M1),
-        lm_select([c2],M1,V1,[output_id='ex_query']),
+        init('./test'),
+        compile('examples/ex_p5.pl',db(blue,[b_node,b_node]),M1),
+        compile('examples/ex_p5.pl',db(red,[r_node,r_node]),M2),
         % use repeated squaring module on M1
         % produce M2 that is automatically loaded
         compute(smp,[V1,M1],M2),
