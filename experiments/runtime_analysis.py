@@ -88,7 +88,7 @@ def compare_runtime(Path, pes, N, methods):
     handles, labels = plt.gca().get_legend_handles_labels()
     labels, handles = zip(
         *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
-    plt.legend(handles, labels, prop={'size': 13})
+    plt.legend(handles, labels, prop={'size': 13}, loc='lower right')
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime.png')
 
@@ -150,7 +150,7 @@ def compare_runtime_2(Path, pe, MaxN, methods):
 
 compare_runtime('experiments/connect/full/runtime/',
                 [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-                5000,
+                1000,
                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
 compare_runtime_2('experiments/connect/partial/runtime/',
                   0.001,

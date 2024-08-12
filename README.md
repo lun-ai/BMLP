@@ -60,7 +60,6 @@ unzip experiments/systems.zip
 ```
 
 - bpl:   B-Prolog (binary in BProlog/)
-- xsbpl: XSB-Prolog (Install from XSB/doc/userman/manual1.pdf)
 - swipl: SWI-Prolog (Install from https://www.swi-prolog.org/Download.html)
 - clingo: Clingo (install from https://github.com/potassco/clingo/releases/)
 - souffle: Souffle (binary in Souffle/ or following instructions from https://souffle-lang.github.io/build)
