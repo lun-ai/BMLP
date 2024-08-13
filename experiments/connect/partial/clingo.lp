@@ -4,4 +4,5 @@ connect(A,B) :-
     edge(A,C),
     connect(C,B).
 
-:- not connect(c1,_).
+connect_c1(Y) :- connect(c1,Y).
+#show connect_c1/1.

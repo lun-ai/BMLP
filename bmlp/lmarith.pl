@@ -43,6 +43,18 @@ M @@ Path is_lmatrix_p A @@ Path + B @@ _ :- !,
 	Ma is_lmatrix A,
 	Mb is_lmatrix B,
 	!, lm_add(Path,Ma,Mb,M), !.
+M @@ Path is_lmatrix_p (A,[D1,D2]) @@ Path ^t:- !,
+	Ma is_lmatrix A,
+	!, lm_prod_trans(Path,Ma,[D1,D2],M), !.
+M @@ Path is_lmatrix_p A @@ Path ^t:- !,
+	Ma is_lmatrix A,
+	!, lm_prod_trans(Path,Ma,M), !.
+M @@ Path is_lmatrix_p \+((A,[D1,_])) @@ Path :- !,
+	Ma is_lmatrix A,
+	!, lm_negate(Path,Ma,D1,M),!.
+M @@ Path is_lmatrix_p \+((A,[D])) @@ Path :- !,
+	Ma is_lmatrix A,
+	!, lm_negate(Path,Ma,D,M),!.
 M @@ Path is_lmatrix_p M @@ Path:- !, nonvar(M), nonvar(Path), !.
 
 
@@ -78,30 +90,43 @@ lm_prod_p(Path,[P1,M1],[P2,M2],[P3,M3]) :-
 % lm_prod_trans/2 - Generation of Transpose Matrix
 lm_prod_trans(Path,[P,M]) :-
     lm_prod_trans(Path,[P,M],_).
-lm_prod_trans(Path,[P,M],[TP,TP_M]) :-
+% should always specify the dimensions
+lm_prod_trans(Path,[P,M],[TP,M]) :-
 	mname(t,P,TP), mfname(Path,TP,M,Mname),
-	tell(Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
-	writes(['% Transposed Union Matrix','\n']),
+	tell(Mname),
 	% for m x n matrices where m < n
     once((
         setof(U,Z^V^V1^(call(P_M,Z,V),V1 is V + 1,U is msb(V1)),Dim),
         last(Dim,MaxDim),
-%        findall(V,call(P_M,Z,V),Rs),
-%        max_list(Rs,Max),
-%        Max1 is Max + 1
-%        MaxDim is msb(Max1),
 	    numlist(0,MaxDim,Cols)
     )),
 	member(Y,Cols),
 	findall(X,(call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
 	lm_stob1(Xs,BXs),
 	write_row_matrix__(TP_M,Y,BXs), fail.
-lm_prod_trans(Path,[P,M],[TP,TP_M]) :- !,
+lm_prod_trans(Path,[P,M],[TP,M]) :- !,
 	told,
 	mname(t,P,TP), mfname(Path,TP,M,Mname),
-	mname(TP,M,TP_M),
 	consult(Mname).
+% use the dimension from matrices
+lm_prod_trans(Path,[P,M],[D1,D2],[TP,M]) :-
+    mname(t,P,TP), mfname(Path,TP,M,Mname),
+	mname(P,M,P_M), mname(TP,M,TP_M),
+	tell(Mname),
+	told,
+	RowDim is D1 - 1,
+	ColDim is D2 - 1,
+	numlist(0,RowDim,Rows),
+	numlist(0,ColDim,Cols),
+	forall(
+	    member(Y,Cols),
+	    call(lm_prod_trans_,Mname,P_M,TP_M,Rows,Y)),
+	consult(Mname),!.
+lm_prod_trans_(Mfname,P_M,TP_M,Rows,Y):-
+    findall(X,(member(X,Rows),call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
+    lm_stob1(Xs,BXs),
+    write_row_matrix_(Mfname,TP_M,Y,BXs,append).
 
 
 % lm_prod_trans_p/2 - parallel version of transpose matrix generation
@@ -111,7 +136,6 @@ lm_prod_trans_p(Path,[P,M],[TP,M]) :-
     mname(t,P,TP), mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
-	writes(['% Transposed Union Matrix','\n']),
 	told,
 	once((
         setof(U,Z^V^V1^(call(P_M,Z,V),V1 is V + 1,U is msb(V1)),Dim),
@@ -160,7 +184,6 @@ pprod_p(Path,[P,M1],[P,M2],[P,M3]) :-
 	mname(P,M1,P_M1), mname(TP,M2,TP_M2), mname(P,M3,P_M3),
 	mfname(Path,P,M3,M3fname),
 	tell(M3fname),
-	writes(['% Matrix product of matrices ',M1,' and ',M2,'\n']),
 	told,
 	concurrent_forall(
 	    call(P_M1,X,_),
@@ -202,9 +225,7 @@ lm_add_diagonal(Path,[P,M],[Pu,M]) :-
 
 
 % Printing Matrix with diagonal added
-
 pdiagonal([P,M],[Pu1,M]) :-
-	writes(['% Matrix with diagonal added','\n']),
 	mname(P,M,P_M), mname(Pu1,M,Pu1_M),
 	call(P_M,X,Y), Y1 is Y\/1<<X,
 	write_row_matrix__(Pu1_M,X,Y1), fail.
@@ -232,13 +253,24 @@ mnames([H|T],Name) :-
 	mname(H,NameT,Name), !.
 
 
+lm_negate(Path,[P,M],D,[P1,M]) :-
+    mname(P,M,P_M),
+    mname('neg_',P,P1),
+    mfname(Path,P1,M,M1fname),
+    Bits is 1<<D - 1,
+    tell(M1fname),
+	told,
+    forall(call(P_M,X,Y),
+            (
+                Y1 is Bits /\ \Y,
+	            write_row_matrix(Path,P1,M,X,Y1,append)
+            )).
 
 % lm_eq/3 - test if two matrices are identical
 %   in every row
-% is_lmatrix/2 checks if two matrices have the same id
 
-lm_eq([P,M1],[P,M2]) :-
-    mname(P,M1,PM1), mname(P,M2,PM2),
+lm_eq(_Path,[P1,M1],[P2,M2]) :-
+    mname(P1,M1,PM1), mname(P2,M2,PM2),
     \+((call(PM1,X,Y1),call(PM2,X,Y2),Y1 =\= Y2)).
 
 
@@ -321,18 +353,17 @@ all_submatrix_p_(Mfname,P_M1,P_M2,P_M3,X) :-
 % For all indices i of rows, subtract row i in the second matrix
 % from row i in the first matrix
 
-lm_subtract(Path,[P,M1],[P,M2],[P,M3]) :-
+lm_subtract(Path,[P1,M1],[P2,M2],[P3,M3]) :-
     (nonvar(M3);M3 is M1 + M2),!,
-    mname(P,M1,P_M1),
-    mname(P,M2,P_M2),
-    mfname(Path,P,M3,M3fname),
+    mname(P1,M1,P_M1),
+    mname(P2,M2,P_M2),
+    mfname(Path,P3,M3,M3fname),
     tell(M3fname),
-	writes(['% Subtract Matrix ',M2,' from Matrix ',M1,'\n']),
 	told,
     forall((call(P_M1,X,Y1),call(P_M2,X,Y2)),
             (
                 Y3 is Y1 /\ \Y2,
-	            write_row_matrix(Path,P,M3,X,Y3,append)
+	            write_row_matrix(Path,P3,M3,X,Y3,append)
             )).
 
 
@@ -536,31 +567,52 @@ reverse_bs(Bs1,Bs2) :-
     findall(N2,(member(N1,S1),N2 is L-N1),S2),
     lm_stob1(S2,Bs2).
 
-
+lm_loaded([P,M]) :-
+    mname(P,M,P_M),
+    current_predicate(P_M/2).
+lm_loaded(matrix([P,M],_,_,_)) :-
+    mname(P,M,P_M),
+    current_predicate(P_M/2).
+lm_consult([P,M]) :-
+    (lm_loaded([P,M]) -> true;
+    (srcPath(BasePath),
+    mfname(BasePath,P,M,F),
+    consult(F))).
 lm_consult(matrix(M,_,_,_)) :-
-    srcPath(BasePath),
+    (lm_loaded(M) -> true;
+    (srcPath(BasePath),
     atomic_list_concat([BasePath|M],F),
-    consult(F).
+    consult(F))).
+lm_unload([P,M]) :-
+    srcPath(BasePath),
+    mfname(BasePath,P,M,F),
+    unload_file(F).
 lm_unload(matrix(M,_,_,_)) :-
     srcPath(BasePath),
     atomic_list_concat([BasePath|M],F),
     unload_file(F).
-lm_print(matrix(M,[T,T],[D,D],_)) :-
+lm_print(M) :-
+    lm_consult(M),
+    lm_print_(M).
+lm_print_(matrix(M,[T,T],[D,D],_)) :-
     atomic_list_concat(M,Mn),
     format('~w (~wx~w):\n',[Mn,D,D]),
-    lm_print_(Mn,T,D).
-lm_print(matrix(M,[T],[D],_)) :-
+    findall(C,cton(T,C,_),Cs),
+    atomics_to_string(Cs,' ',S),
+    format('\t ~w\n',[S]),
+    lm_print__(Mn,T,D).
+lm_print_(matrix(M,[T],[D],_)) :-
     atomic_list_concat(M,Mn),
     format('~w (~wx~w):\n',[Mn,1,D]),
     findall(C,cton(T,C,_),Cs),
     atomics_to_string(Cs,' ',S),
     format('\t ~w\n',[S]),
     lm_print_(Mn,T,D).
-lm_print_(P,T,D) :-
+lm_print__(P,T,D) :-
     call(P,X,Y),
     cton(T,C,X),
     lm_btol(Y,D,L),
     atomics_to_string(L,' ',A),
     format('~w\t|~w|\n',[C,A]),
     fail.
-lm_print_(_,_,_).
+lm_print__(_,_,_).

@@ -148,10 +148,10 @@ def compare_runtime_2(Path, pe, MaxN, methods):
     plt.savefig('figures/exp_1_runtime_2.png')
 
 
-compare_runtime('experiments/connect/full/runtime/',
-                [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-                1000,
-                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# compare_runtime('experiments/connect/full/runtime/',
+#                 [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
+#                 1000,
+#                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
 compare_runtime_2('experiments/connect/partial/runtime/',
                   0.001,
                   5000,

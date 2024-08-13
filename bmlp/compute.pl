@@ -14,14 +14,41 @@ compute(A,B,C) :-
 compute(_,_,_) :-
     throw(error(bmlp_computation_error,_)).
 
-compute(mul,[matrix([P,N],[Q1,Q2],[D1,D2],_),matrix([P1,N1],[Q2,Q3],[D2,D3],_)],matrix([P2,N2],[Q1,Q3],[D1,D3],_),Args) :-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Boolean matrix operations
+
+compute(mul,[matrix([P,N],[Q1,Q2],[D1,D2],_),matrix([P1,N1],[Q2,Q3],[D2,D3],_)],
+             matrix([P3,N2],[Q1,Q3],[D1,D3],_),Args) :-
     srcPath(Path),
-    atomic_concat([P,N,'*',P1,N1],P2),
+    lm_consult([P,N]),
+    lm_consult([P1,N1]),
+    atomic_list_concat([P,N,'_mul_',P1,N1,'_'],P2),
     assign_name(Args,output_id,P2,P3),
     [P3,N2] @@ Path is_lmatrix_p [P,N] @@ Path * [P1,N1] @@ Path,!.
 
-%compute(add,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
+compute(add,[matrix([P,N],[Q1,Q2],[D1,D2],_),matrix([P1,N1],[Q1,Q2],[D1,D2],_)],
+             matrix([P3,N2],[Q1,Q2],[D1,D2],_),Args) :-
+    srcPath(Path),
+    lm_consult([P,N]),
+    lm_consult([P1,N1]),
+    atomic_list_concat([P,N,'_add_',P1,N1,'_'],P2),
+    assign_name(Args,output_id,P2,P3),
+    [P3,N2] @@ Path is_lmatrix_p [P,N] @@ Path + [P1,N1] @@ Path,!.
+
+compute(transpose,matrix(M1,[Q1,Q2],[D1,D2],_),matrix(M2,[Q2,Q1],[D2,D1],_),_Args) :-
+    srcPath(Path),
+    lm_consult(M1),
+    M2 @@ Path is_lmatrix_p (M1,[D1,D2]) @@ Path ^t,!.
+
+compute(negate,matrix(M1,[Q1,Q2],[D1,D2],_),matrix(M2,[Q1,Q2],[D1,D2],_),_Args) :-
+    srcPath(Path),
+    lm_consult(M1),
+    M2 @@ Path is_lmatrix_p \+((M1,[D1,D2])) @@ Path,!.
+
 %compute(eq,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BMLP modules
 
 compute(rms,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
     srcPath(Path),

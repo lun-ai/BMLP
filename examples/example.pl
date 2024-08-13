@@ -36,17 +36,23 @@ ex_2 :- % initialisation
         compute(smp,[V1,M1],V2),
         % print output vector if it has been loaded
         lm_print(V2).
-%composed :-
-%        init('./test'),
-%        compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
-%        compile('examples/ex_p6.pl',db(g,[set,set],_),M2),
-%        non_linear(),
-%        % print output matrix if it has been loaded
-%        lm_print(M2).
-%
-%non_linear(matrix(M1,_,_,_),matrix(M2,_,_,_)) :-
-%        lm_submatrix(M1,M2).
-%non_linear(M1,M2,M3) :-
-%        compute(rms,M1,M3),
-%        compute(rms,M3,M4),
-%        non-linear(M4,M2).
+composed :-
+        init('./test'),
+        compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
+        compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
+        compute(rms,M1,M3),
+        lm_print(M3),
+        trace,
+        compute(transpose,M3,MT3),
+        lm_print(MT3),
+
+        compute(transpose,M2,MT2),
+        lm_print(MT2),
+        compute(add,[M2,MT2],M4),
+        lm_print(M4),
+
+        compute(mul,[MT3,M4],M5),
+        lm_print(M5),
+        compute(negate,M5,MN5),
+        % print output matrix if it has been loaded
+        lm_print(MN5).

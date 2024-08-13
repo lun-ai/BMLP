@@ -16,9 +16,10 @@ else
 fi
 
 if [[ $2 == "experiments/connect/partial" ]]; then
-#  nodes=(1000 2000 3000 4000 5000)
-  nodes=(5000)
-  p=(0.0001 0.001 0.01 0.1 0.5 1)
+ nodes=(1000 2000 3000 4000 5000)
+ p=(0.001)
+#   nodes=(5000)
+#   p=(0.0001 0.001 0.01 0.1 0.5 1)
 else
   nodes=(1000)
 #  p=(0.0001 0.001 0.01 0.1 0.5 1)
@@ -51,7 +52,7 @@ for k in "${nodes[@]}"; do
     # Clingo
             clg)
             cp ${repo}/background.pl ${repo}/background.lp
-            clingo -q --time-limit=15000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
+            python -m clingo -q --time-limit=15000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
             ;;
     # Souffle
             souffle)

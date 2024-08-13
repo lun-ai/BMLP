@@ -79,36 +79,36 @@ test(compile_test_p4_with_duplicates) :-
 
 test(compile_test_p5_single_relation) :-
     init('./test'),
-    compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
+    compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
     lm_consult(M1),
-    assertion(t1(0,0)),
-    assertion(t1(1,0)),
-    assertion(t1(2,0)),
-    assertion(t1(3,0)),
-    assertion(t1(4,2)),
-    assertion(t1(5,0)),
-    assertion(t1(6,1)).
+    assertion(contains1(0,0)),
+    assertion(contains1(1,0)),
+    assertion(contains1(2,0)),
+    assertion(contains1(3,0)),
+    assertion(contains1(4,2)),
+    assertion(contains1(5,0)),
+    assertion(contains1(6,1)).
 
 test(compile_test_p5_multiple_relations) :-
     init('./test'),
-    compile('examples/ex_p6.pl',db(t,[set,set],_),M1),
-    compile('examples/ex_p6.pl',db(g,[set,set],_),M2),
+    compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
+    compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
     lm_consult(M1),
-    assertion(t1(0,0)),
-    assertion(t1(1,0)),
-    assertion(t1(2,0)),
-    assertion(t1(3,0)),
-    assertion(t1(4,2)),
-    assertion(t1(5,0)),
-    assertion(t1(6,1)),
+    assertion(contains1(0,0)),
+    assertion(contains1(1,0)),
+    assertion(contains1(2,0)),
+    assertion(contains1(3,0)),
+    assertion(contains1(4,2)),
+    assertion(contains1(5,0)),
+    assertion(contains1(6,1)),
     lm_consult(M2),
-    assertion(g1(0,0)),
-    assertion(g1(1,64)),
-    assertion(g1(2,0)),
-    assertion(g1(3,0)),
-    assertion(g1(4,0)),
-    assertion(g1(5,0)),
-    assertion(g1(6,0)).
+    assertion(adjoins1(0,0)),
+    assertion(adjoins1(1,64)),
+    assertion(adjoins1(2,0)),
+    assertion(adjoins1(3,0)),
+    assertion(adjoins1(4,0)),
+    assertion(adjoins1(5,0)),
+    assertion(adjoins1(6,0)).
 
 :- end_tests(compilation).
 
