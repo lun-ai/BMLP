@@ -1,6 +1,9 @@
 # Define the file path to the FB15k dataset.
 # 7991 triples, 14541 objects
-fb15k_file_paths = ['train.txt', 'valid.txt', 'test.txt']
+
+src_path = 'experiments/FB15K/'
+
+fb15k_file_paths = [src_path + 'train.txt', src_path + 'valid.txt', src_path + 'test.txt']
 
 relation1 = '/location/location/contains'
 relation2 = '/location/location/adjoin_s./location/adjoining_relationship/adjoins'
@@ -23,10 +26,10 @@ for f in fb15k_file_paths:
                 triples2.append(('adjoins', c1, c2))
 
 # Define the output file path for the parsed triples.
-output_file_path1 = 'background.pl'
-output_dl_path1 = 'CONTAINS.facts'
-output_dl_path2 = 'ADJOINS.facts'
-output_dl_path3 = 'location.facts'
+output_file_path1 = src_path + 'background.pl'
+output_dl_path1 = src_path + 'CONTAINS.facts'
+output_dl_path2 = src_path + 'ADJOINS.facts'
+output_dl_path3 = src_path + 'location.facts'
 objects = list(dict.fromkeys(objects))
 triples = triples1 + triples2
 

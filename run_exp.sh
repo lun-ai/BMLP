@@ -37,8 +37,11 @@ for k in "${nodes[@]}"; do
       for i in $(seq 1 ${3}); do
         if [ $2 != "experiments/FB15K" ]; then
             swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),halt" -q
+            swipl -s experiments/generate_BK.pl -g "background_to_dl('${repo}'),halt" -q
+            cp ${repo}/background.pl ${repo}/background.lp
             fn="${j}pe_${k}nodes.txt"
         else
+            python ${repo}/extract_relation.py
             fn="FB15K.txt"
         fi
         for method in "${methods[@]}"; do
@@ -59,17 +62,15 @@ for k in "${nodes[@]}"; do
         # B-Prolog
             bpl)
             cd ${repo}
-            ${cur_dir}/experiments/BProlog/bp -s 80000000 -g "consult(b_prolog),compute" | sed -n "4p"
+            ${cur_dir}/experiments/BProlog/bp -g "consult(b_prolog),compute" | sed -n "4p"
             cd ${cur_dir} > /dev/null
             ;;
         # Clingo
             clg)
-            cp ${repo}/background.pl ${repo}/background.lp
             python -m clingo -q --time-limit=15000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
             ;;
         # Souffle
             souffle)
-            swipl -s experiments/generate_BK.pl -g "background_to_dl('${repo}'),halt" -q
             cd ${repo}
             ${cur_dir}/experiments/Souffle/build/src/souffle -c -F . -D . souffle.dl -p souffle.log
             ${cur_dir}/experiments/Souffle/build/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
