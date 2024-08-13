@@ -23,16 +23,29 @@ for f in fb15k_file_paths:
                 triples2.append(('adjoins', c1, c2))
 
 # Define the output file path for the parsed triples.
-output_file_path = 'background.pl'
+output_file_path1 = 'background.pl'
+output_dl_path1 = 'CONTAINS.facts'
+output_dl_path2 = 'ADJOINS.facts'
+output_dl_path3 = 'location.facts'
 objects = list(dict.fromkeys(objects))
 triples = triples1 + triples2
 
 # Write the filtered triples to the output file.
-with open(output_file_path, 'w') as output_file:
+with open(output_file_path1, 'w') as output_file:
     for triple in triples:
         output_file.write(triple[0] + '(\'' + triple[1] + '\',\'' + triple[2] + '\').' + '\n')
     for obj in objects:
         output_file.write(f"location('{obj}').\n")
 
+with open(output_dl_path1, 'w') as output_file:
+    for triple in triples1:
+        output_file.write(f"\"{triple[1]}\"" + '\t' + f"\"{triple[2]}\"" + '\n')
+with open(output_dl_path2, 'w') as output_file:
+    for triple in triples2:
+        output_file.write(f"\"{triple[1]}\"" + '\t' + f"\"{triple[2]}\"" + '\n')
+with open(output_dl_path3, 'w') as output_file:
+    for obj in objects:
+        output_file.write(f"\"{obj}\"\n")
+
 # Print a summary of the results.
-print(f"Extracted {len(triples)} triples, {len(objects)} objects and saved them to {output_file_path}.")
+print(f"Extracted {len(triples)} triples, {len(objects)} objects and saved them to {output_file_path1}.")

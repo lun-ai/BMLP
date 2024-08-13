@@ -4,6 +4,8 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+:- multifile(bmlp:ntoc/3),multifile(bmlp:cton/3).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % compiling square matrices
 compile(DBPath,DB,M) :-

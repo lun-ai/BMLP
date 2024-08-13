@@ -1,0 +1,19 @@
+.decl CONTAINS(x:symbol,y:symbol)
+.input CONTAINS
+.decl p_1(x:symbol,y:symbol)
+p_1(x,y) :- CONTAINS(x,y).
+p_1(x,y) :- CONTAINS(x,z),p_1(z,y).
+
+.decl ADJOINS(x:symbol,y:symbol)
+.input ADJOINS
+.decl p_2(x:symbol,y:symbol)
+p_2(x,y) :- ADJOINS(x,y).
+p_2(x,y) :- ADJOINS(y,x).
+p_2(x,y) :- p_1(z,x),p_2(z,y).
+
+.decl location(x:symbol)
+.input location
+.decl f(x:symbol,y:symbol)
+f(x,y) :- location(x),location(y),!p_2(x,y).
+
+.output f

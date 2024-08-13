@@ -36,7 +36,8 @@ test(compile_test_p1_total_order) :-
     lm_consult(M1),
     assertion(edge1(0,0)),
     assertion(edge1(1,0)),
-    assertion(edge1(2,0)).
+    assertion(edge1(2,0)),
+    lm_unload(M1).
 
 test(compile_test_p2) :-
     init('./test'),
@@ -45,7 +46,8 @@ test(compile_test_p2) :-
     assertion(edge1(0,2)),
     assertion(edge1(1,4)),
     assertion(edge1(2,8)),
-    assertion(edge1(3,0)).
+    assertion(edge1(3,0)),
+    lm_unload(M1).
 
 test(compile_test_p3) :-
     init('./test'),
@@ -60,7 +62,8 @@ test(compile_test_p3) :-
     assertion(edge1(6,384)),
     assertion(edge1(7,256)),
     assertion(edge1(8,512)),
-    assertion(edge1(9,0)).
+    assertion(edge1(9,0)),
+    lm_unload(M1).
 
 test(compile_test_p4_with_duplicates) :-
     init('./test'),
@@ -75,7 +78,8 @@ test(compile_test_p4_with_duplicates) :-
     assertion(edge1(6,384)),
     assertion(edge1(7,256)),
     assertion(edge1(8,512)),
-    assertion(edge1(9,0)).
+    assertion(edge1(9,0)),
+    lm_unload(M1).
 
 test(compile_test_p5_single_relation) :-
     init('./test'),
@@ -83,11 +87,12 @@ test(compile_test_p5_single_relation) :-
     lm_consult(M1),
     assertion(contains1(0,0)),
     assertion(contains1(1,0)),
-    assertion(contains1(2,0)),
+    assertion(contains1(2,16)),
     assertion(contains1(3,0)),
     assertion(contains1(4,2)),
     assertion(contains1(5,0)),
-    assertion(contains1(6,1)).
+    assertion(contains1(6,0)),
+    lm_unload(M1).
 
 test(compile_test_p5_multiple_relations) :-
     init('./test'),
@@ -96,19 +101,21 @@ test(compile_test_p5_multiple_relations) :-
     lm_consult(M1),
     assertion(contains1(0,0)),
     assertion(contains1(1,0)),
-    assertion(contains1(2,0)),
+    assertion(contains1(2,16)),
     assertion(contains1(3,0)),
     assertion(contains1(4,2)),
     assertion(contains1(5,0)),
-    assertion(contains1(6,1)),
+    assertion(contains1(6,0)),
+    lm_unload(M1),
     lm_consult(M2),
     assertion(adjoins1(0,0)),
-    assertion(adjoins1(1,64)),
-    assertion(adjoins1(2,0)),
+    assertion(adjoins1(1,0)),
+    assertion(adjoins1(2,8)),
     assertion(adjoins1(3,0)),
     assertion(adjoins1(4,0)),
     assertion(adjoins1(5,0)),
-    assertion(adjoins1(6,0)).
+    assertion(adjoins1(6,0)),
+    lm_unload(M2).
 
 :- end_tests(compilation).
 

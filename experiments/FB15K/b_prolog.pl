@@ -1,13 +1,14 @@
-:- [background].
+:- ['../../examples/ex_p6.pl'].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % B-Prolog
+% could not complete within 400 mins
 
 p_1(X,Y) :- contains(X,Y).
 p_1(X,Y) :- contains(X,Z), p_1(Z,Y).
 p_2(X,Y) :- adjoins(X,Y).
 p_2(X,Y) :- adjoins(Y,X).
-p_2(X,Y) :- statistics,p_1(Z,X), p_2(Z,Y).
+p_2(X,Y) :- p_1(Z,X), p_2(Z,Y).
 f(X,Y) :- location(X), location(Y), \+ p_2(X,Y).
 
 :- table f/2,p_1/2,p_2/2.

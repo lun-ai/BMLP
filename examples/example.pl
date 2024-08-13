@@ -42,17 +42,13 @@ composed :-
         compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
         compute(rms,M1,M3),
         lm_print(M3),
-        trace,
         compute(transpose,M3,MT3),
         lm_print(MT3),
-
         compute(transpose,M2,MT2),
         lm_print(MT2),
         compute(add,[M2,MT2],M4),
         lm_print(M4),
-
         compute(mul,[MT3,M4],M5),
         lm_print(M5),
         compute(negate,M5,MN5),
-        % print output matrix if it has been loaded
         lm_print(MN5).

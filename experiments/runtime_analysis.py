@@ -37,7 +37,7 @@ OT = 10000
 
 
 # experiment 1
-def compare_runtime(Path, pes, N, methods):
+def plot_DG(Path, pes, N, methods):
     data_list = []
     for f in os.listdir(Path):
         if '.txt' in f and str(N) in f and f.split('_')[0] in methods and len(f.split('_')) <= 3 and N == int(
@@ -93,7 +93,7 @@ def compare_runtime(Path, pes, N, methods):
     plt.savefig('figures/exp_1_runtime.png')
 
 
-def compare_runtime_2(Path, pe, MaxN, methods):
+def plot_DG_partial(Path, pe, MaxN, methods):
     data_list = []
     for f in os.listdir(Path):
         if '.txt' in f and str(pe) in f and f.split('_')[0] in methods:
@@ -147,12 +147,57 @@ def compare_runtime_2(Path, pe, MaxN, methods):
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime_2.png')
 
+def analysis(Path,pes,N,methods):
+    print(Path)
+    data_list = []
+    for f in os.listdir(Path):
+        if '.txt' in f and str(N) in f and f.split('_')[0] in methods and len(f.split('_')) <= 3 and N == int(
+                f.split('_')[2].strip('nodes.txt')):
+            pe = float(f.split('_')[1].strip('pe'))
+            if pe not in pes:
+                continue
+            data = {}
+            seen = False
+            data[-1] = f.split('_')[0]
+            for d in data_list:
+                if d[-1] == data[-1]:
+                    data = d
+                    seen = True
+                    break
+            file = open(Path + f)
+            data[pe] = [float(l.strip()) for l in file.readlines() if isinstance(float(l.strip()), float)]
+            if data_list == [] or not seen:
+                data_list.append(data)
+    sorted_data_list = []
+    for d in data_list:
+        sorted_data_list.append(collections.OrderedDict(sorted(d.items())))
 
-# compare_runtime('experiments/connect/full/runtime/',
-#                 [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-#                 1000,
+    for data in sorted_data_list:
+        p = []
+        u = []
+        sterr = []
+        print(data[-1])
+        for p_ in data.keys():
+            if p_ > 0:
+                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
+                runtimes = [max(i, 0.001) for i in data[p_]]
+                p.append(p_)
+                u.append(min(np.mean(runtimes), OT))
+                sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
+
+# analysis('experiments/connect/full/runtime/',
+#                 [0.01, 0.1, 0.5],
+#                 5000,
 #                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-compare_runtime_2('experiments/connect/partial/runtime/',
-                  0.001,
-                  5000,
-                  ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+analysis('experiments/connect/partial/runtime/',
+                [0.01, 0.1, 0.5],
+                5000,
+                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+# plot_DG('experiments/connect/full/runtime/',
+#         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
+#         5000,
+#         ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# plot_DG_partial('experiments/connect/partial/runtime/',
+#                 0.001,
+#                 5000,
+#                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])

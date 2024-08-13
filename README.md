@@ -32,7 +32,8 @@ If database has not been encoded as a boolean matrix, it can be compiled via the
 ```
  bmlp :- init,
          compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-         compute(rms,[M1],[M2],[output_id='connect'],_).
+         compute(rms,M1,M2,[output_id='connect']),
+         ln_print(M2).
 ```
 
 Facts in the database, e.g. edge(X:node,Y:node), are referred to by the _db_ term to focuses on target relation 
