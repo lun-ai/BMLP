@@ -18,13 +18,13 @@ fi
 # check which dataset to use
 if [ $2 == "experiments/connect/partial" ]; then
     nodes=(5000)
-    p=(0.0001 0.001 0.01 0.1)
+    p=(0.01 0.1 0.5)
 #   p=(0.0001 0.001 0.01 0.1 0.5 1)
     echo "dataset: ${2}, n:${nodes}, pe:${p}"
 elif [ $2 == "experiments/connect/full" ]; then
-    nodes=(1000)
-    #  p=(0.0001 0.001 0.01 0.1 0.5 1)
-    p=(0.001)
+    nodes=(5000)
+    p=(0.0001 0.001 0.01 0.1 0.5 1)
+#     p=(0.001)
     echo "dataset: ${2}, n:${nodes}, pe:${p}"
 else
     nodes=(0)

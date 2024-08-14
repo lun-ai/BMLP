@@ -1,12 +1,14 @@
 *.out
+*.log
 *background.pl
 *background.lp
 ./edge*
 ./connect*
 *.xwam
 *.facts
+*.csv
 .idea
-test
+temp
 experiments/BProlog
 experiments/XSB
 experiments/Souffle

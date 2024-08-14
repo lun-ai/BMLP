@@ -9,6 +9,7 @@
 % SWI-Pl 9.2 requires setting max_integer byte size
 
 :- op(700,xfy,is_lmatrix). 		% LMatrix expression evaluation
+:- op(700,xfy,is_lmatrix_le). 		% LMatrix expression evaluation
 :- op(700,xfy,is_lmatrix_p).    % LMatrix multi-threading extensions (see below)
 :- op(500,yfx,'--').			% LMatrix minus intersection
 :- op(300,xfy,'@@').
@@ -22,64 +23,75 @@ M is_lmatrix A \/ 1 :- !,
 M is_lmatrix A * B :- !,
 	Ma is_lmatrix A,
 	Mb is_lmatrix B,
-	!, lm_prod(Ma,Mb,M), !.
-M is_lmatrix M :- !, nonvar(M), !.
+	lm_prod(Ma,Mb,M), !.
+M is_lmatrix M :- !, nonvar(M).
 
 
-% "_p" provides methods for multi-threading extensions
-%   methods have been implemented but not evaluated
-%   against other systems
-M @@ Path is_lmatrix_p A @@ Path ^2 :- !,
+% "_p" provides methods for use-defined path to store
+%   computed results
+
+% squring
+M @@ Path is_lmatrix_p (A,[D1,_]) @@ Path ^2 :- !,
 	Ma is_lmatrix A,
-	lm_square(Path,Ma,M), !.
-M @@ Path is_lmatrix_p A @@ Path \/ 1  :- !,
+	lm_square(Path,Ma,D1,M), !.
+
+% adding identity
+M @@ Path is_lmatrix_p (A,[D1,_]) @@ Path \/ 1  :- !,
 	Ma is_lmatrix A,
-	lm_add_diagonal(Path,Ma,M), !.
-M @@ Path is_lmatrix_p A @@ Path * B @@ _ :- !,
+	lm_add_diagonal(Path,Ma,D1,M), !.
+
+% multiplication
+M @@ Path is_lmatrix_p (A,[D1,_]) @@ Path * (B,_) @@ Path :- !,
 	Ma is_lmatrix A,
 	Mb is_lmatrix B,
-	!, lm_prod(Path,Ma,Mb,M), !.
-M @@ Path is_lmatrix_p A @@ Path + B @@ _ :- !,
+	lm_prod(Path,Ma,Mb,D1,M), !.
+
+% addition
+M @@ Path is_lmatrix_p (A,[D1,D2]) @@ Path + (B,[D1,D2]) @@ Path :- !,
 	Ma is_lmatrix A,
 	Mb is_lmatrix B,
-	!, lm_add(Path,Ma,Mb,M), !.
+	lm_add(Path,Ma,Mb,D1,M), !.
+
+% transpose
 M @@ Path is_lmatrix_p (A,[D1,D2]) @@ Path ^t:- !,
 	Ma is_lmatrix A,
-	!, lm_prod_trans(Path,Ma,[D1,D2],M), !.
-M @@ Path is_lmatrix_p A @@ Path ^t:- !,
-	Ma is_lmatrix A,
-	!, lm_prod_trans(Path,Ma,M), !.
+	lm_trans(Path,Ma,[D1,D2],M), !.
+
+% negation
 M @@ Path is_lmatrix_p \+((A,[D1,_])) @@ Path :- !,
 	Ma is_lmatrix A,
-	!, lm_negate(Path,Ma,D1,M),!.
-M @@ Path is_lmatrix_p \+((A,[D])) @@ Path :- !,
-	Ma is_lmatrix A,
-	!, lm_negate(Path,Ma,D,M),!.
-M @@ Path is_lmatrix_p M @@ Path:- !, nonvar(M), nonvar(Path), !.
+	lm_negate(Path,Ma,D1,M),!.
+
+% equal
+M @@ Path is_lmatrix_p M @@ Path:- !, nonvar(M), nonvar(Path).
+(M,[D1,D2]) @@ Path is_lmatrix_le (A,[D1,D2]) @@ Path :- !,
+    Ma is_lmatrix A,
+	Mb is_lmatrix M,
+    lm_total_order(Mb,Ma,D1).
+
 
 
 % Square of matrices
 
-lm_square(Path,[P,M1],[P,M2]) :- M2 is M1*2,
-%    lm_prod_trans(Path,[P,M1],[_TP,_TP_M1]),
-	lm_prod(Path,[P,M1],[P,M1],[P,M2]), !.
+lm_square(Path,[P,M1],D,[P,M2]) :- M2 is M1*2,
+%    lm_trans(Path,[P,M1],[_TP,_TP_M1]),
+	lm_prod(Path,[P,M1],[P,M1],D,[P,M2]), !.
 
 lm_square_p(Path,[P,M1],[P,M2]) :- M2 is M1*2,
-%    lm_prod_trans_p(Path,[P,M1],[_TP,_TP_M1]),
+%    lm_trans_p(Path,[P,M1],[_TP,_TP_M1]),
 	lm_prod_p(Path,[P,M1],[P,M1],[P,M2]), !.
 
 
 % lm_prod/4 - Ms is product of matrices M1,M2
 
-lm_prod(Path,[P1,M1],[P2,M2],[P3,M3]) :-
+lm_prod(Path,[P1,M1],[P2,M2],D,[P3,M3]) :-
     nonvar(P3),
     (nonvar(M3);M3 is M1+M2),
 	mfname(Path,P3,M3,M3name),
 	tell(M3name),
-	pprod([P1,M1],[P2,M2],[P3,M3]),
+	pprod([P1,M1],[P2,M2],D,[P3,M3]),
 	told,
 	consult(M3name),!.
-%	lm_prod_trans([P,M3]), !.
 
 
 lm_prod_p(Path,[P1,M1],[P2,M2],[P3,M3]) :-
@@ -87,11 +99,11 @@ lm_prod_p(Path,[P1,M1],[P2,M2],[P3,M3]) :-
 	pprod_p(Path,[P1,M1],[P2,M2],[P3,M3]),!.
 
 
-% lm_prod_trans/2 - Generation of Transpose Matrix
-lm_prod_trans(Path,[P,M]) :-
-    lm_prod_trans(Path,[P,M],_).
+% lm_trans/2 - Generation of Transpose Matrix
+lm_trans(Path,[P,M]) :-
+    lm_trans(Path,[P,M],_).
 % should always specify the dimensions
-lm_prod_trans(Path,[P,M],[TP,M]) :-
+lm_trans(Path,[P,M],[TP,M]) :-
 	mname(t,P,TP), mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
@@ -105,34 +117,32 @@ lm_prod_trans(Path,[P,M],[TP,M]) :-
 	findall(X,(call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
 	lm_stob1(Xs,BXs),
 	write_row_matrix__(TP_M,Y,BXs), fail.
-lm_prod_trans(Path,[P,M],[TP,M]) :- !,
+lm_trans(Path,[P,M],[TP,M]) :- !,
 	told,
 	mname(t,P,TP), mfname(Path,TP,M,Mname),
 	consult(Mname).
 % use the dimension from matrices
-lm_prod_trans(Path,[P,M],[D1,D2],[TP,M]) :-
+lm_trans(Path,[P,M],[D1,D2],[TP,M]) :-
     mname(t,P,TP), mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
 	told,
-	RowDim is D1 - 1,
-	ColDim is D2 - 1,
-	numlist(0,RowDim,Rows),
-	numlist(0,ColDim,Cols),
+	dim_list(D1,Rows),
+	dim_list(D2,Cols),
 	forall(
 	    member(Y,Cols),
-	    call(lm_prod_trans_,Mname,P_M,TP_M,Rows,Y)),
+	    lm_trans_(Mname,P_M,TP_M,Rows,Y)),
 	consult(Mname),!.
-lm_prod_trans_(Mfname,P_M,TP_M,Rows,Y):-
+lm_trans_(Mfname,P_M,TP_M,Rows,Y):-
     findall(X,(member(X,Rows),call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
     lm_stob1(Xs,BXs),
     write_row_matrix_(Mfname,TP_M,Y,BXs,append).
 
 
-% lm_prod_trans_p/2 - parallel version of transpose matrix generation
-lm_prod_trans_p(Path,[P,M]) :-
-    lm_prod_trans_p(Path,[P,M],_).
-lm_prod_trans_p(Path,[P,M],[TP,M]) :-
+% lm_trans_p/2 - parallel version of transpose matrix generation
+lm_trans_p(Path,[P,M]) :-
+    lm_trans_p(Path,[P,M],_).
+lm_trans_p(Path,[P,M],[TP,M]) :-
     mname(t,P,TP), mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
@@ -144,9 +154,9 @@ lm_prod_trans_p(Path,[P,M],[TP,M]) :-
     )),
 	concurrent_forall(
 	    member(Y,Cols),
-	    call(lm_prod_trans_p_,Mname,P_M,TP_M,Y)),
+	    lm_trans_p_(Mname,P_M,TP_M,Y)),
 	consult(Mname),!.
-lm_prod_trans_p_(Mfname,P_M,TP_M,Y):-
+lm_trans_p_(Mfname,P_M,TP_M,Y):-
     findall(X,(call(P_M,X,Ys),1 is getbit(Ys,Y)),Xs),
     lm_stob1(Xs,BXs),
     write_row_matrix_(Mfname,TP_M,Y,BXs,append).
@@ -167,15 +177,18 @@ lm_prods(Path,P,[D|Ds],M) :-
 % Could optimise meta-level calls
 % future work: dedicated helpers for the compiler to optimise
 
-pprod([P1,M1],[P2,M2],[P3,M3]) :-
-    mname(P2,M2,P_M2),
+pprod([P1,M1],[P2,M2],D,[P3,M3]) :-
 	mname(P1,M1,P_M1), mname(P3,M3,P_M3),
+    mname(P2,M2,P_M2),
+	dim_list(D,L),
+	forall(member(X,L),
+	    pprod_(P_M1,P_M2,P_M3,X)).
+pprod_(P_M1,P_M2,P_M3,X) :-
 	call(P_M1,X,BXs),
 	lm_btos1(BXs,BXS),
     findall(BYs,(member(Y,BXS),call(P_M2,Y,BYs)),BYs),
     foldl(or,BYs,0,BYs1),
-    write_row_matrix__(P_M3,X,BYs1), fail.
-pprod(_,_,_).
+    write_row_matrix__(P_M3,X,BYs1).
 
 or(A,B,C) :- C is A \/ B.
 
@@ -212,30 +225,26 @@ pprod_p_(P_M1,TP_M,X,BYs1) :-
 
 % Add diagonal to a given logical matrix
 
-lm_add_diagonal(Path,[P,M],[Pu,M]) :-
+lm_add_diagonal(Path,[P,M],D,[Pu,M]) :-
 	name(P,P1),
 	(nonvar(Pu);(name('1U',U1),appends([P1,U1],Pu1))),
 	name(Pu,Pu1),
 	mfname(Path,Pu,M,Mfname),
 	tell(Mfname),
-	pdiagonal([P,M],[Pu,M]),
+	pdiagonal([P,M],D,[Pu,M]),
 	told,
 	consult(Mfname), !.
 
 
 
 % Printing Matrix with diagonal added
-pdiagonal([P,M],[Pu1,M]) :-
+pdiagonal([P,M],D,[Pu1,M]) :-
 	mname(P,M,P_M), mname(Pu1,M,Pu1_M),
+	dim_list(D,L),
+	forall(member(X,L),pdiagonal(P_M,Pu1_M,X)).
+pdiagonal(P_M,Pu1_M,X) :-
 	call(P_M,X,Y), Y1 is Y\/1<<X,
-	write_row_matrix__(Pu1_M,X,Y1), fail.
-%pdiagonal([P,M],[Pu1,M]) :-
-%	writes(['% Transpose Matrix with diagonal added','\n']),
-%	mname(P,M,P_M), mname(Pu1,M,Pu1_M),
-%	mname(t,P_M,TP_M), mname(t,Pu1_M,TPu1_M),
-%	call(TP_M,X,_), lm_add_diagonal1(TP_M,X,Y),
-%	writes([TPu1_M,'(',X,',',Y,')','.','\n']), fail.
-pdiagonal(_,_).
+	write_row_matrix__(Pu1_M,X,Y1).
 
 
 element(X,[X|_]).
@@ -256,15 +265,18 @@ mnames([H|T],Name) :-
 lm_negate(Path,[P,M],D,[P1,M]) :-
     mname(P,M,P_M),
     mname('neg_',P,P1),
+    mname(P1,M,P_M1),
     mfname(Path,P1,M,M1fname),
     Bits is 1<<D - 1,
+    dim_list(D,L),
     tell(M1fname),
 	told,
-    forall(call(P_M,X,Y),
-            (
-                Y1 is Bits /\ \Y,
-	            write_row_matrix(Path,P1,M,X,Y1,append)
-            )).
+    forall(member(X,L),
+           lm_negate_(M1fname,P_M,P_M1,X,Bits)).
+lm_negate_(M1fname,P_M,P_M1,X,Bits) :-
+    call(P_M,X,Y),
+    Y1 is Bits /\ \Y,
+    write_row_matrix_(M1fname,P_M1,X,Y1,append).
 
 % lm_eq/3 - test if two matrices are identical
 %   in every row
@@ -282,12 +294,15 @@ lm_eq(_Path,[P1,M1],[P2,M2]) :-
 %        Y1 == Y2
 %    ).
 
-% lm_submatrix/2 - test whether every row of 1st matrix is a subset
+% lm_total_order/3 - test whether every row of 1st matrix is a subset
 %   of the corresponding row of the second
 
-lm_submatrix([P1,M1],[P2,M2]) :-
+lm_total_order([P1,M1],[P2,M2],D) :-
 	mname(P1,M1,P_M1), mname(P2,M2,P_M2),
-	\+((call(P_M1,X,Y1),call(P_M2,X,Y2),\+(bit_subset_chk(Y1,Y2)))).
+	dim_list(D,L),
+	forall(member(X,L),lm_total_order_(P_M1,P_M2,X)).
+lm_total_order_(P_M1,P_M2,X) :-
+    call(P_M1,X,Y1),call(P_M2,X,Y2),bit_subset_chk(Y1,Y2).
 
 
 
@@ -403,6 +418,21 @@ lm_add(Path,[P1,M1],[P2,M2],[P3,M3]) :-
                 write_row_matrix(Path,P3,M3,X,Y3,append)
             )).
 
+lm_add(Path,[P1,M1],[P2,M2],D,[P3,M3]) :-
+    (nonvar(P3),nonvar(M3);M3 is M1 + M2),!,
+    mname(P1,M1,P_M1),
+    mname(P2,M2,P_M2),
+    mname(P3,M3,P_M3),
+    dim_list(D,L),
+    mfname(Path,P3,M3,M3fname),
+    tell(M3fname),
+	told,
+    forall(member(X,L),
+           lm_add_(M3fname,P_M1,P_M2,P_M3,X)).
+lm_add_(M3fname,P_M1,P_M2,P_M3,X) :-
+    call(P_M1,X,Y1),call(P_M2,X,Y2),
+    Y3 is Y1 \/ Y2,
+    write_row_matrix_(M3fname,P_M3,X,Y3,append).
 
 lm_add_p(Path,[P,M1],[P,M2],[P,M3]) :-
     (nonvar(M3);M3 is M1 + M2),!,
@@ -411,7 +441,6 @@ lm_add_p(Path,[P,M1],[P,M2],[P,M3]) :-
     mname(P,M3,P_M3),
     mfname(Path,P,M3,M3fname),
     tell(M3fname),
-	writes(['% Union between two matrices ',M1,' and ',M2,'\n']),
 	told,
 	forall(
 %    concurrent_forall(
@@ -529,8 +558,7 @@ lm_ltob([B|Bl],Bs1,Bs2) :-
 
 lm_btol(Bs,D,Bl) :-
     set_max_integer_size,
-    D1 is D - 1,
-    numlist(0,D1,L),
+    dim_list(D,L),
     lm_btol_(Bs,L,Bl).
 lm_btol_(Bs,L,Bl) :-
     lm_btos1(Bs,S),
@@ -567,6 +595,10 @@ reverse_bs(Bs1,Bs2) :-
     findall(N2,(member(N1,S1),N2 is L-N1),S2),
     lm_stob1(S2,Bs2).
 
+dim_list(D,L) :-
+    RowDim is D - 1,
+    numlist(0,RowDim,L).
+
 lm_loaded([P,M]) :-
     mname(P,M,P_M),
     current_predicate(P_M/2).
@@ -594,25 +626,17 @@ lm_unload(matrix(M,_,_,_)) :-
 lm_print(M) :-
     lm_consult(M),
     lm_print_(M).
-lm_print_(matrix(M,[T,T],[D,D],_)) :-
+lm_print_(matrix(M,[T1,T2],[D1,D2],_)) :-
     atomic_list_concat(M,Mn),
-    format('~w (~wx~w):\n',[Mn,D,D]),
-    findall(C,cton(T,C,_),Cs),
+    format('~w (~wx~w):\n',[Mn,D1,D2]),
+    findall(C,cton(T2,C,_),Cs),
     atomics_to_string(Cs,' ',S),
     format('\t ~w\n',[S]),
-    lm_print__(Mn,T,D).
-lm_print_(matrix(M,[T],[D],_)) :-
-    atomic_list_concat(M,Mn),
-    format('~w (~wx~w):\n',[Mn,1,D]),
-    findall(C,cton(T,C,_),Cs),
-    atomics_to_string(Cs,' ',S),
-    format('\t ~w\n',[S]),
-    lm_print_(Mn,T,D).
-lm_print__(P,T,D) :-
+    dim_list(D1,L),
+    forall(member(X,L),lm_print__(Mn,T1,D2,X)).
+lm_print__(P,T,D,X) :-
     call(P,X,Y),
     cton(T,C,X),
     lm_btol(Y,D,L),
     atomics_to_string(L,' ',A),
-    format('~w\t|~w|\n',[C,A]),
-    fail.
-lm_print__(_,_,_).
+    format('~w\t|~w|\n',[C,A]).

@@ -4,8 +4,6 @@
 %p_2(X,Y) :- adjoins(Y,X).
 %p_2(X,Y) :- p_1(Z,X), p_2(Z,Y).
 %f(X,Y) :- location(X), location(Y), \+ p_2(X,Y).
-%
-% :- table f/2,p_1/2,p_2/2.
 
 location(g1).
 location(g2).

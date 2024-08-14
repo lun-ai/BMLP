@@ -3,8 +3,6 @@
 
 src_path = 'experiments/FB15K/'
 fb15k_file_paths = [src_path + 'train.txt', src_path + 'valid.txt', src_path + 'test.txt']
-# src_path = 'examples/'
-# fb15k_file_paths = ['ex_p6.pl']
 
 relation1 = '/location/location/contains'
 relation2 = '/location/location/adjoin_s./location/adjoining_relationship/adjoins'

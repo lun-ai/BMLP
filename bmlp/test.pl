@@ -31,7 +31,7 @@ test(set_max_integer_size) :-
 :- begin_tests(compilation).
 
 test(compile_test_p1_total_order) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,0)),
@@ -40,7 +40,7 @@ test(compile_test_p1_total_order) :-
     lm_unload(M1).
 
 test(compile_test_p2) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
@@ -50,7 +50,7 @@ test(compile_test_p2) :-
     lm_unload(M1).
 
 test(compile_test_p3) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
@@ -66,7 +66,7 @@ test(compile_test_p3) :-
     lm_unload(M1).
 
 test(compile_test_p4_with_duplicates) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p4.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
@@ -82,7 +82,7 @@ test(compile_test_p4_with_duplicates) :-
     lm_unload(M1).
 
 test(compile_test_p5_single_relation) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
     lm_consult(M1),
     assertion(contains1(0,0)),
@@ -95,7 +95,7 @@ test(compile_test_p5_single_relation) :-
     lm_unload(M1).
 
 test(compile_test_p5_multiple_relations) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
     compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
     lm_consult(M1),
@@ -119,10 +119,14 @@ test(compile_test_p5_multiple_relations) :-
 
 :- end_tests(compilation).
 
+:- begin_tests(boolean_operations).
+
+:- end_tests(boolean_operations).
+
 :- begin_tests(rms).
 
 test(rms_test_p1_empty) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,_),
     assertion(edge1(0,0)),
@@ -130,7 +134,7 @@ test(rms_test_p1_empty) :-
     assertion(edge1(2,0)).
 
 test(rms_test_p2_no_name) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_)),
     atomic_list_concat(Ml2,M2Name),
@@ -140,7 +144,7 @@ test(rms_test_p2_no_name) :-
     assertion(call(M2Name,3,0)).
 
 test(rms_test_p2) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
@@ -150,7 +154,7 @@ test(rms_test_p2) :-
     assertion(call(M2Name,3,0)).
 
 test(rms_test_p3_linear) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
@@ -166,7 +170,7 @@ test(rms_test_p3_linear) :-
     assertion(call(M2Name,9,0)).
 
 test(rms_test_p4_with_duplicates) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
@@ -182,7 +186,7 @@ test(rms_test_p4_with_duplicates) :-
     assertion(call(M2Name,9,0)).
 
 test(rms_test_p5_with_cycles) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
     compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
@@ -202,7 +206,7 @@ test(rms_test_p5_with_cycles) :-
 :- begin_tests(smp).
 
 test(smp_test_p1_empty) :-
-        init('./test'),
+        init('./temp'),
         compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -210,7 +214,7 @@ test(smp_test_p1_empty) :-
         assertion(call(M2Name,0,0)).
 
 test(smp_test_p2_no_name) :-
-        init('./test'),
+        init('./temp'),
         compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -218,7 +222,7 @@ test(smp_test_p2_no_name) :-
         assertion(call(M2Name,0,14)).
 
 test(smp_test_p3) :-
-        init('./test'),
+        init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c2],M1,V1,[output_id='query']),
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -226,7 +230,7 @@ test(smp_test_p3) :-
         assertion(call(M2Name,0,1020)).
 
 test(smp_test_p3_multiple_constants) :-
-        init('./test'),
+        init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c1,c2],M1,V1,[output_id='query']),
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -234,7 +238,7 @@ test(smp_test_p3_multiple_constants) :-
         assertion(call(M2Name,0,1022)).
 
 test(smp_test_p4_with_duplicates) :-
-        init('./test'),
+        init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c3],M1,V1,[output_id='query']),
         compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -242,7 +246,7 @@ test(smp_test_p4_with_duplicates) :-
         assertion(call(M2Name,0,1016)).
 
 test(rms_test_p5_with_cycles) :-
-    init('./test'),
+    init('./temp'),
     compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
     lm_select([c2],M1,V1,[output_id='query']),
     compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
@@ -250,3 +254,28 @@ test(rms_test_p5_with_cycles) :-
     assertion(call(M2Name,0,124)).
 
 :- end_tests(smp).
+
+:- begin_tests(composed).
+
+test(composed_p6) :-
+        init('./temp'),
+        compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
+        compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
+        compute(rms,M1,M3),
+        compute(transpose,M3,MT3),
+        compute(addI,MT3,MIT3),
+        compute(transpose,M2,MT2),
+        compute(add,[M2,MT2],M4),
+        compute(mul,[MIT3,M4],M5),
+        compute(negate,M5,matrix(Ml,_,_,_)),
+        atomic_list_concat(Ml,MName),
+        lm_consult(Ml),
+        assertion(call(MName,0,127)),
+        assertion(call(MName,1,119)),
+        assertion(call(MName,2,119)),
+        assertion(call(MName,3,123)),
+        assertion(call(MName,4,119)),
+        assertion(call(MName,5,127)),
+        assertion(call(MName,6,127)).
+
+:- end_tests(composed).

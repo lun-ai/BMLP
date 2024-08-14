@@ -9,7 +9,7 @@ compute_(M1,M2,MN5) :-
         compute(negate,M5,MN5).
 
 compute :-
-        init('./test'),
+        init('./temp'),
         compile('experiments/FB15K/background.pl',db(contains,[location,location],_),M1),
         compile('experiments/FB15K/background.pl',db(adjoins,[location,location],_),M2),
         call_time(compute_(M1,M2,_),Stats),

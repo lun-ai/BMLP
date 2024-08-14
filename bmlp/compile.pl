@@ -23,7 +23,7 @@ compile(DBPath,DB,matrix([P,1],[T,T],Dim,_),_Args) :-
 % a subset of drivable facts
 lm_select(Cs,M,V) :-
     lm_select(Cs,M,V,_Args).
-lm_select(Cs,matrix([P,_],[T,T],[D,D],_),matrix([V1,1],[T],[D],_),Args) :-
+lm_select(Cs,matrix([P,_],[T,T],[D,D],_),matrix([V1,1],[T,T],[1,D],_),Args) :-
     srcPath(BasePath),
     atomic_list_concat([BasePath,P,'_csmap.pl'],CsPath),
     consult(CsPath),
