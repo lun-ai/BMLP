@@ -10,7 +10,7 @@ repo=${2}
 cur_dir=$(pwd)
 
 if [[ $1 == "all" ]]; then
-  methods=("clg" "swipl" "bpl" "souffle")
+  methods=("bpl" "souffle")
 else
   methods=(${1})
 fi
@@ -18,7 +18,7 @@ fi
 # check which dataset to use
 if [ $2 == "experiments/connect/partial" ]; then
     nodes=(5000)
-    p=(1)
+    p=(0.0001 0.001 0.01 0.1)
 #   p=(0.0001 0.001 0.01 0.1 0.5 1)
     echo "dataset: ${2}, n:${nodes}, pe:${p}"
 elif [ $2 == "experiments/connect/full" ]; then
@@ -36,8 +36,7 @@ for k in "${nodes[@]}"; do
   for j in "${p[@]}"; do
       for i in $(seq 1 ${3}); do
         if [ $2 != "experiments/FB15K" ]; then
-            swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),halt" -q
-            swipl -s experiments/generate_BK.pl -g "background_to_dl('${repo}'),halt" -q
+            swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),background_to_dl('${repo}'),halt" -q
             cp ${repo}/background.pl ${repo}/background.lp
             fn="${j}pe_${k}nodes.txt"
         else
@@ -72,8 +71,8 @@ for k in "${nodes[@]}"; do
         # Souffle
             souffle)
             cd ${repo}
-            ${cur_dir}/experiments/Souffle/build/src/souffle -c -F . -D . souffle.dl -p souffle.log
-            ${cur_dir}/experiments/Souffle/build/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
+            ${cur_dir}/experiments/Souffle/src/souffle -c -F . -D . souffle.dl -p souffle.log
+            ${cur_dir}/experiments/Souffle/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
             cat ${j}pe_${k}nodes.html | grep "data={" | sed 's/.*\[//' | sed 's/,.*//'
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null

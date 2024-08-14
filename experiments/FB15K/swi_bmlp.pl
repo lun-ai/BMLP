@@ -2,15 +2,10 @@
 
 compute_(M1,M2,MN5) :-
         compute(rms,M1,M3),
-        writeln(M3),
         compute(transpose,M3,MT3),
-        writeln(MT3),
         compute(transpose,M2,MT2),
-        writeln(MT2),
         compute(add,[M2,MT2],M4),
-        writeln(M4),
         compute(mul,[MT3,M4],M5),
-        writeln(M5),
         compute(negate,M5,MN5).
 
 compute :-

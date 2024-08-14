@@ -3,6 +3,8 @@
 *background.lp
 ./edge*
 ./connect*
+*.xwam
+*.facts
 .idea
 test
 experiments/BProlog

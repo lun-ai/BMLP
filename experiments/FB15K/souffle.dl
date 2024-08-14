@@ -16,4 +16,6 @@ p_2(x,y) :- p_1(z,x),p_2(z,y).
 .decl f(x:symbol,y:symbol)
 f(x,y) :- location(x),location(y),!p_2(x,y).
 
+.output p_1
+.output p_2
 .output f
