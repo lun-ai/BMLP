@@ -1,4 +1,4 @@
-:- [background].
+%:- [background].
 
 :- table connect/2.
 

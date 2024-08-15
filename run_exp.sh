@@ -10,7 +10,7 @@ repo=${2}
 cur_dir=$(pwd)
 
 if [[ $1 == "all" ]]; then
-  methods=("bpl" "souffle")
+  methods=("bpl" "souffle" "clg" "swipl")
 else
   methods=(${1})
 fi
@@ -23,8 +23,7 @@ if [ $2 == "experiments/connect/partial" ]; then
     echo "dataset: ${2}, n:${nodes}, pe:${p}"
 elif [ $2 == "experiments/connect/full" ]; then
     nodes=(5000)
-    p=(0.0001 0.001 0.01 0.1 0.5 1)
-#     p=(0.001)
+    p=(0.01 0.1 0.5)
     echo "dataset: ${2}, n:${nodes}, pe:${p}"
 else
     nodes=(0)

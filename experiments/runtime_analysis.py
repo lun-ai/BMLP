@@ -19,7 +19,8 @@ names = {
     'bpl': 'B-Prolog*',
     'clg': 'Clingo',
     'xsbpl': 'XSB-Prolog*',
-    'souffle': 'Souffle'
+    'souffle': 'Souffle',
+    'ot': 'OT'
 }
 
 # BMLP-IE and BMLP-RMS have two different colors
@@ -30,10 +31,11 @@ markers = {
     'bpl': ['x', colors[3]],
     'clg': ['x', colors[2]],
     'xsbpl': ['x', colors[5]],
-    'souffle': ['x', colors[6]]
+    'souffle': ['x', colors[6]],
+    'ot': ['--', 'black']
 }
 
-OT = 10000
+OT = 15000
 
 
 # experiment 1
@@ -82,13 +84,14 @@ def plot_DG(Path, pes, N, methods):
         #                  color=markers[data[-1]][1],
         #                  alpha=0.2)
         plt.xticks(np.round(np.log10(p), 2))
-    plt.xlabel(r'Density of edges, $p_t$ ($log_{10}$)', fontsize=15)
+    plt.xlabel(r'Density of edges $p_t$ ($log_{10}$)', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
     # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
     labels, handles = zip(
         *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13}, loc='lower right')
+    plt.axhline(y=np.log10(15000), color='black', ls='--',label="OT")
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime.png')
 
@@ -137,13 +140,19 @@ def plot_DG_partial(Path, pe, MaxN, methods):
         # plt.fill_between(p, np.array(u) - np.array(sterr), np.array(u) + np.array(sterr), color=markers[data[-1]][1],
         #                  alpha=0.2)
         plt.xticks(p)
-    plt.xlabel('No. nodes', fontsize=15)
+    plt.xlabel(r'No. constants $n$', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
     # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
     labels, handles = zip(
         *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13})
+    c = 0.000006**2
+    plt.errorbar([1000, 2000, 3000, 4000, 5000],
+                 np.log10([1000 ** 3 * c, 2000 ** 3 * c, 3000 ** 3 * c, 4000 ** 3 * c, 5000 ** 3 * c]),
+                 label=r'log_{10}(n^3) + c',
+                 color='grey',
+                 ls='--')
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/exp_1_runtime_2.png')
 
@@ -220,20 +229,20 @@ def analysis_FB15K(Path):
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
 
 
-analysis_DG('experiments/connect/full/runtime/',
-                [0.01, 0.1, 0.5],
-                5000,
-                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-analysis_DG('experiments/connect/partial/runtime/',
-                [0.01, 0.1, 0.5],
-                5000,
-                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
-# analysis_FB15K('experiments/FB15K/runtime/')
-# plot_DG('experiments/connect/full/runtime/',
-#         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-#         5000,
-#         ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# plot_DG_partial('experiments/connect/partial/runtime/',
-#                 0.001,
+# analysis_DG('experiments/connect/full/runtime/',
+#                 [0.01, 0.1, 0.5],
+#                 5000,
+#                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# analysis_DG('experiments/connect/partial/runtime/',
+#                 [0.01, 0.1, 0.5],
 #                 5000,
 #                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+# analysis_FB15K('experiments/FB15K/runtime/')
+plot_DG('experiments/connect/full/runtime/',
+        [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
+        5000,
+        ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+plot_DG_partial('experiments/connect/partial/runtime/',
+                0.001,
+                5000,
+                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])

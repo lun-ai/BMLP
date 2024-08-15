@@ -201,6 +201,13 @@ test(rms_test_p5_with_cycles) :-
     assertion(call(M2Name,8,0)),
     assertion(call(M2Name,9,0)).
 
+test(rms_test_p7_large_program) :-
+        init('./temp'),
+        compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
+        compute(rms,M1,matrix(Ml2,_,_,_)),
+        atomic_list_concat(Ml2,M2Name),
+        assertion(call(M2Name,0,10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069375)).
+
 :- end_tests(rms).
 
 :- begin_tests(smp).
@@ -245,13 +252,21 @@ test(smp_test_p4_with_duplicates) :-
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,1016)).
 
-test(rms_test_p5_with_cycles) :-
-    init('./temp'),
-    compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
-    lm_select([c2],M1,V1,[output_id='query']),
-    compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
-    atomic_list_concat(Ml2,M2Name),
-    assertion(call(M2Name,0,124)).
+test(smp_test_p5_with_cycles) :-
+        init('./temp'),
+        compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
+        lm_select([c2],M1,V1,[output_id='query']),
+        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        atomic_list_concat(Ml2,M2Name),
+        assertion(call(M2Name,0,124)).
+
+test(smp_test_p7_large_program) :-
+        init('./temp'),
+        compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
+        lm_select([c1],M1,V1,[output_id='query']),
+        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        atomic_list_concat(Ml2,M2Name),
+        assertion(call(M2Name,0,10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069375)).
 
 :- end_tests(smp).
 
