@@ -29,6 +29,7 @@ output_file_path1 = src_path + 'background.pl'
 output_dl_path1 = src_path + 'CONTAINS.facts'
 output_dl_path2 = src_path + 'ADJOINS.facts'
 output_dl_path3 = src_path + 'location.facts'
+output_file_path2 = src_path + 'background.lp'
 objects = list(dict.fromkeys(objects))
 triples = triples1 + triples2
 
@@ -38,6 +39,12 @@ with open(output_file_path1, 'w') as output_file:
         output_file.write(triple[0] + '(\'' + triple[1] + '\',\'' + triple[2] + '\').' + '\n')
     for obj in objects:
         output_file.write(f"location('{obj}').\n")
+
+with open(output_file_path2, 'w') as output_file:
+    for triple in triples:
+        output_file.write(triple[0] + '(\"' + triple[1] + '\",\"' + triple[2] + '\").' + '\n')
+    for obj in objects:
+        output_file.write(f"location(\"{obj}\").\n")
 
 with open(output_dl_path1, 'w') as output_file:
     for triple in triples1:

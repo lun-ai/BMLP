@@ -237,7 +237,7 @@ def analysis_FB15K(Path):
 #                 [0.01, 0.1, 0.5],
 #                 5000,
 #                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
-# analysis_FB15K('experiments/FB15K/runtime/')
+analysis_FB15K('experiments/FB15K/runtime/')
 plot_DG('experiments/connect/full/runtime/',
         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
         5000,

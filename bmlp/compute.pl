@@ -9,6 +9,35 @@
 :- discontiguous lm_fixpoint/4,fixedpoint/6,fixedpoint_/5.
 :- use_module(library(time)).
 
+mul((A,B),C) :-
+    compute(mul,[A,B],C).
+mul((A,B),C,Arg) :-
+    compute(mul,[A,B],C,Arg).
+add((A,B),C) :-
+    compute(add,[A,B],C).
+add((A,B),C,Arg) :-
+    compute(add,[A,B],C,Arg).
+addI(A,B) :-
+    compute(addI,A,B).
+addI(A,B,Arg) :-
+    compute(addI,A,B,Arg).
+transpose(A,B) :-
+    compute(transpose,A,B).
+transpose(A,B,Arg) :-
+    compute(transpose,A,B,Arg).
+negate(A,B) :-
+    compute(negate,A,B).
+negate(A,B,Arg) :-
+    compute(negate,A,B,Arg).
+rms(A,B) :-
+    compute(rms,A,B).
+rms(A,B,Arg) :-
+    compute(rms,A,B,Arg).
+smp((A,B),C) :-
+    compute(smp,[A,B],C).
+smp((A,B),C,Arg) :-
+    compute(smp,[A,B],C,Arg).
+
 compute(A,B,C) :-
     compute(A,B,C,_Args),!.
 compute(_,_,_) :-
@@ -58,17 +87,17 @@ compute(negate,matrix(M1,Qs,Dims,_),matrix(M2,Qs,Dims,_),_Args) :-
 compute(rms,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
     srcPath(Path),
     assign_name(Args,output_id,P,P1),
-    rms(Path,[P,N],Dim,[P1,Depth]),!.
+    rms_(Path,[P,N],Dim,[P1,Depth]),!.
 compute(smp,[matrix(V1,[Q1,Q],[1,D],_),matrix(M,[Q,Q],[D,D],_)],matrix(V2,[Q1,Q],[1,D],_),_Args) :-
     srcPath(Path),
-    smp(Path,V1,M,[1,D],V2),!.
+    smp_(Path,V1,M,[1,D],V2),!.
 compute(_,_,_,_) :-
     throw(error(bmlp_computation_error,_)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Selective matrix product (SMP)
-smp(Path,[V,N],[P,N],Ds,[V,Depth]) :-
+smp_(Path,[V,N],[P,N],Ds,[V,Depth]) :-
     % load matrix
     mfname(Path,P,N,LMatrix),
     consult(LMatrix),
@@ -101,7 +130,7 @@ fixedpoint_(Path,Ml,Vl,Vl_temp,Ds) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Repeated matrix squaring (RMS)
-rms(Path,[P,N],Ds,[P1,Depth]) :-
+rms_(Path,[P,N],Ds,[P1,Depth]) :-
     atomic_list_concat([Path,P,N],LMatrix),
     consult(LMatrix),
     % M = R + I (identify matrix)

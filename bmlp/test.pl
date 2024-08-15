@@ -128,7 +128,7 @@ test(compile_test_p5_multiple_relations) :-
 test(rms_test_p1_empty) :-
     init('./temp'),
     compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,_),
+    rms(M1,_),
     assertion(edge1(0,0)),
     assertion(edge1(1,0)),
     assertion(edge1(2,0)).
@@ -136,7 +136,7 @@ test(rms_test_p1_empty) :-
 test(rms_test_p2_no_name) :-
     init('./temp'),
     compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,matrix(Ml2,_,_,_)),
+    rms(M1,matrix(Ml2,_,_,_)),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,14)),
     assertion(call(M2Name,1,12)),
@@ -146,7 +146,7 @@ test(rms_test_p2_no_name) :-
 test(rms_test_p2) :-
     init('./temp'),
     compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,14)),
     assertion(call(M2Name,1,12)),
@@ -156,7 +156,7 @@ test(rms_test_p2) :-
 test(rms_test_p3_linear) :-
     init('./temp'),
     compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,1022)),
     assertion(call(M2Name,1,1020)),
@@ -172,7 +172,7 @@ test(rms_test_p3_linear) :-
 test(rms_test_p4_with_duplicates) :-
     init('./temp'),
     compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,1022)),
     assertion(call(M2Name,1,1020)),
@@ -188,7 +188,7 @@ test(rms_test_p4_with_duplicates) :-
 test(rms_test_p5_with_cycles) :-
     init('./temp'),
     compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
-    compute(rms,M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,0)),
     assertion(call(M2Name,1,124)),
@@ -204,7 +204,7 @@ test(rms_test_p5_with_cycles) :-
 test(rms_test_p7_large_program) :-
         init('./temp'),
         compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
-        compute(rms,M1,matrix(Ml2,_,_,_)),
+        rms(M1,matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069375)).
 
@@ -216,7 +216,7 @@ test(smp_test_p1_empty) :-
         init('./temp'),
         compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,0)).
 
@@ -224,7 +224,7 @@ test(smp_test_p2_no_name) :-
         init('./temp'),
         compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,14)).
 
@@ -232,7 +232,7 @@ test(smp_test_p3) :-
         init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c2],M1,V1,[output_id='query']),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,1020)).
 
@@ -240,7 +240,7 @@ test(smp_test_p3_multiple_constants) :-
         init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c1,c2],M1,V1,[output_id='query']),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,1022)).
 
@@ -248,7 +248,7 @@ test(smp_test_p4_with_duplicates) :-
         init('./temp'),
         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c3],M1,V1,[output_id='query']),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,1016)).
 
@@ -256,7 +256,7 @@ test(smp_test_p5_with_cycles) :-
         init('./temp'),
         compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
         lm_select([c2],M1,V1,[output_id='query']),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,124)).
 
@@ -264,7 +264,7 @@ test(smp_test_p7_large_program) :-
         init('./temp'),
         compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1,[output_id='query']),
-        compute(smp,[V1,M1],matrix(Ml2,_,_,_)),
+        smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069375)).
 
@@ -276,7 +276,7 @@ test(composed_p6) :-
         init('./temp'),
         compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
         compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
-        compute(rms,M1,M3),
+        rms(M1,M3),
         compute(transpose,M3,MT3),
         compute(addI,MT3,MIT3),
         compute(transpose,M2,MT2),
