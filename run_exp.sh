@@ -70,8 +70,8 @@ for k in "${nodes[@]}"; do
         # Souffle
             souffle)
             cd ${repo}
-            ${cur_dir}/experiments/Souffle/src/souffle -c -F . -D . souffle.dl -p souffle.log
-            ${cur_dir}/experiments/Souffle/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
+            ${cur_dir}/experiments/Souffle/build/src/souffle -c -F . -D . souffle.dl -p souffle.log
+            ${cur_dir}/experiments/Souffle/build/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
             cat ${j}pe_${k}nodes.html | grep "data={" | sed 's/.*\[//' | sed 's/,.*//'
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null
