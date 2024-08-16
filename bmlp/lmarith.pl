@@ -183,6 +183,9 @@ pprod([P1,M1],[P2,M2],D,[P3,M3]) :-
 	dim_list(D,L),
 	forall(member(X,L),
 	    pprod_(P_M1,P_M2,P_M3,X)).
+pprod_(P_M1,_,P_M3,X) :-
+	call(P_M1,X,0),!,
+    write_row_matrix__(P_M3,X,0).
 pprod_(P_M1,P_M2,P_M3,X) :-
 	call(P_M1,X,BXs),
 	lm_btos1(BXs,BXS),

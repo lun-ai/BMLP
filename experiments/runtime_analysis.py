@@ -38,7 +38,7 @@ markers = {
 OT = 15000
 
 
-# experiment 1
+# Figure 4
 def plot_DG(Path, pes, N, methods):
     data_list = []
     for f in os.listdir(Path):
@@ -96,6 +96,7 @@ def plot_DG(Path, pes, N, methods):
     plt.savefig('figures/exp_1_runtime.png')
 
 
+# Figure 5
 def plot_DG_partial(Path, pe, MaxN, methods):
     data_list = []
     for f in os.listdir(Path):
@@ -228,20 +229,27 @@ def analysis_FB15K(Path):
                 u.append(min(np.mean(runtimes), OT))
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
 
-
-# analysis_DG('experiments/connect/full/runtime/',
-#                 [0.01, 0.1, 0.5],
-#                 5000,
-#                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# analysis_DG('experiments/connect/partial/runtime/',
-#                 [0.01, 0.1, 0.5],
-#                 5000,
-#                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+# mean and sterr data in Table 2
+# DG
+analysis_DG('experiments/connect/full/runtime/',
+                [0.01, 0.1, 0.5],
+                5000,
+                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# DG+partial
+analysis_DG('experiments/connect/partial/runtime/',
+                [0.01, 0.1, 0.5],
+                5000,
+                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+# FB15K-237
 analysis_FB15K('experiments/FB15K/runtime/')
+
+
+# plot Figure 4
 plot_DG('experiments/connect/full/runtime/',
         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
         5000,
         ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# plot Figure 5
 plot_DG_partial('experiments/connect/partial/runtime/',
                 0.001,
                 5000,
