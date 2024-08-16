@@ -3,10 +3,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % B-Prolog
 
-connect(A,B):-edge(A,B).
-connect(A,B):-edge(A,C),connect(C,B).
+path(A,B):-edge(A,B).
+path(A,B):-edge(A,C),path(C,B).
 
-:- table connect/2.
+:- table path/2.
 
 compute :-
     cputime(Start),
@@ -15,6 +15,6 @@ compute :-
     T is (End-Start)/1000,
     writeln(T),halt.
 
-closure:-connect(c1,_C2), fail.
+closure:-path(_C1,_C2), fail.
 closure.
 

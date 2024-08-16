@@ -3,10 +3,9 @@
 trap '' HUP INT
 
 ############################## To call ##############################
-# bash run_exp.sh system_name experiments/networks/connect sub_folder
+# bash run_exp.sh SYSTEM_NAME DATASET REP
 
-############################## connect ####################################
-repo=${2}
+
 cur_dir=$(pwd)
 
 if [[ $1 == "all" ]]; then
@@ -16,19 +15,29 @@ else
 fi
 
 # check which dataset to use
-if [ $2 == "experiments/connect/partial" ]; then
+if [ $2 == "partial-range" ]; then
+    repo="experiments/path/partial"
+    nodes=(1000 2000 3000 4000 5000)
+    p=(0.001)
+    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+elif [ $2 == "partial-5000" ]; then
+    repo="experiments/path/partial"
     nodes=(5000)
     p=(0.01 0.1 0.5)
-#   p=(0.0001 0.001 0.01 0.1 0.5 1)
-    echo "dataset: ${2}, n:${nodes}, pe:${p}"
-elif [ $2 == "experiments/connect/full" ]; then
+    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+elif [ $2 == "full-5000" ]; then
+    repo="experiments/path/full"
     nodes=(5000)
-    p=(0.01 0.1 0.5)
-    echo "dataset: ${2}, n:${nodes}, pe:${p}"
-else
+    p=(0.0001 0.001 0.01 0.1 0.5 1)
+    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+elif [ $2 == "FB15K" ]; then
+    repo="experiments/FB15K"
     nodes=(0)
     p=(0)
-    echo "dataset: ${2}"
+    echo "Dataset: ${2}"
+else
+    nodes=()
+    echo "Cannot find dataset"
 fi
 
 for k in "${nodes[@]}"; do
@@ -76,7 +85,7 @@ for k in "${nodes[@]}"; do
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null
             ;;
-          esac>>./${method}_${fn}
+          esac>>${repo}/${method}_${fn}
         done
       done
   done

@@ -28,11 +28,12 @@ test(set_max_integer_size) :-
 
 :- end_tests(max_integer_size).
 
+% Tests on compiling all examples into matrices
 :- begin_tests(compilation).
 
 test(compile_test_p1_total_order) :-
     init('./temp'),
-    compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p1.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,0)),
     assertion(edge1(1,0)),
@@ -41,7 +42,7 @@ test(compile_test_p1_total_order) :-
 
 test(compile_test_p2) :-
     init('./temp'),
-    compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p2.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
     assertion(edge1(1,4)),
@@ -51,7 +52,7 @@ test(compile_test_p2) :-
 
 test(compile_test_p3) :-
     init('./temp'),
-    compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
     assertion(edge1(1,4)),
@@ -67,7 +68,7 @@ test(compile_test_p3) :-
 
 test(compile_test_p4_with_duplicates) :-
     init('./temp'),
-    compile('examples/ex_p4.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p4.pl',db(edge,[node,node],_),M1),
     lm_consult(M1),
     assertion(edge1(0,2)),
     assertion(edge1(1,4)),
@@ -83,7 +84,7 @@ test(compile_test_p4_with_duplicates) :-
 
 test(compile_test_p5_single_relation) :-
     init('./temp'),
-    compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
+    compile('./bmlp/tests/ex_p6.pl',db(contains,[location,location],_),M1),
     lm_consult(M1),
     assertion(contains1(0,0)),
     assertion(contains1(1,0)),
@@ -96,8 +97,8 @@ test(compile_test_p5_single_relation) :-
 
 test(compile_test_p5_multiple_relations) :-
     init('./temp'),
-    compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
-    compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
+    compile('./bmlp/tests/ex_p6.pl',db(contains,[location,location],_),M1),
+    compile('./bmlp/tests/ex_p6.pl',db(adjoins,[location,location],_),M2),
     lm_consult(M1),
     assertion(contains1(0,0)),
     assertion(contains1(1,0)),
@@ -123,11 +124,12 @@ test(compile_test_p5_multiple_relations) :-
 
 :- end_tests(boolean_operations).
 
+% Tests on runing BMLP-RMS on example datalog programs
 :- begin_tests(rms).
 
 test(rms_test_p1_empty) :-
     init('./temp'),
-    compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p1.pl',db(edge,[node,node],_),M1),
     rms(M1,_),
     assertion(edge1(0,0)),
     assertion(edge1(1,0)),
@@ -135,7 +137,7 @@ test(rms_test_p1_empty) :-
 
 test(rms_test_p2_no_name) :-
     init('./temp'),
-    compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
+    compile('./bmlp/tests/ex_p2.pl',db(edge,[node,node],_),M1),
     rms(M1,matrix(Ml2,_,_,_)),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,14)),
@@ -145,8 +147,8 @@ test(rms_test_p2_no_name) :-
 
 test(rms_test_p2) :-
     init('./temp'),
-    compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
-    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    compile('./bmlp/tests/ex_p2.pl',db(edge,[node,node],_),M1),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='path']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,14)),
     assertion(call(M2Name,1,12)),
@@ -155,8 +157,8 @@ test(rms_test_p2) :-
 
 test(rms_test_p3_linear) :-
     init('./temp'),
-    compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='path']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,1022)),
     assertion(call(M2Name,1,1020)),
@@ -171,8 +173,8 @@ test(rms_test_p3_linear) :-
 
 test(rms_test_p4_with_duplicates) :-
     init('./temp'),
-    compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='path']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,1022)),
     assertion(call(M2Name,1,1020)),
@@ -187,8 +189,8 @@ test(rms_test_p4_with_duplicates) :-
 
 test(rms_test_p5_with_cycles) :-
     init('./temp'),
-    compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
-    rms(M1,matrix(Ml2,_,_,_),[output_id='connect']),
+    compile('./bmlp/tests/ex_p5.pl',db(edge,[node,node],_),M1),
+    rms(M1,matrix(Ml2,_,_,_),[output_id='path']),
     atomic_list_concat(Ml2,M2Name),
     assertion(call(M2Name,0,0)),
     assertion(call(M2Name,1,124)),
@@ -203,18 +205,20 @@ test(rms_test_p5_with_cycles) :-
 
 test(rms_test_p7_large_program) :-
         init('./temp'),
-        compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p7.pl',db(edge,[node,node],_),M1),
         rms(M1,matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,10715086071862673209484250490600018105614048117055336074437503883703510511249361224931983788156958581275946729175531468251871452856923140435984577574698574803934567774824230985421074605062371141877954182153046474983581941267398767559165543946077062914571196477686542167660429831652624386837205668069375)).
 
 :- end_tests(rms).
 
+
+% Tests on runing BMLP-SMP on example datalog programs
 :- begin_tests(smp).
 
 test(smp_test_p1_empty) :-
         init('./temp'),
-        compile('examples/ex_p1.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p1.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -222,7 +226,7 @@ test(smp_test_p1_empty) :-
 
 test(smp_test_p2_no_name) :-
         init('./temp'),
-        compile('examples/ex_p2.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p2.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -230,7 +234,7 @@ test(smp_test_p2_no_name) :-
 
 test(smp_test_p3) :-
         init('./temp'),
-        compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c2],M1,V1,[output_id='query']),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -238,7 +242,7 @@ test(smp_test_p3) :-
 
 test(smp_test_p3_multiple_constants) :-
         init('./temp'),
-        compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c1,c2],M1,V1,[output_id='query']),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -246,7 +250,7 @@ test(smp_test_p3_multiple_constants) :-
 
 test(smp_test_p4_with_duplicates) :-
         init('./temp'),
-        compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p3.pl',db(edge,[node,node],_),M1),
         lm_select([c3],M1,V1,[output_id='query']),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -254,15 +258,17 @@ test(smp_test_p4_with_duplicates) :-
 
 test(smp_test_p5_with_cycles) :-
         init('./temp'),
-        compile('examples/ex_p5.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p5.pl',db(edge,[node,node],_),M1),
         lm_select([c2],M1,V1,[output_id='query']),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
         assertion(call(M2Name,0,124)).
 
+% A larger program with 1000 constants and 9848 facts
+% the binary code represent has been converted from output of a SWI-Prolog program
 test(smp_test_p7_large_program) :-
         init('./temp'),
-        compile('examples/ex_p7.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p7.pl',db(edge,[node,node],_),M1),
         lm_select([c1],M1,V1,[output_id='query']),
         smp((V1,M1),matrix(Ml2,_,_,_)),
         atomic_list_concat(Ml2,M2Name),
@@ -274,8 +280,8 @@ test(smp_test_p7_large_program) :-
 
 test(composed_p6) :-
         init('./temp'),
-        compile('examples/ex_p6.pl',db(contains,[location,location],_),M1),
-        compile('examples/ex_p6.pl',db(adjoins,[location,location],_),M2),
+        compile('./bmlp/tests/ex_p6.pl',db(contains,[location,location],_),M1),
+        compile('./bmlp/tests/ex_p6.pl',db(adjoins,[location,location],_),M2),
         rms(M1,M3),
         compute(transpose,M3,MT3),
         compute(addI,MT3,MIT3),

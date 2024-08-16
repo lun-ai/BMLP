@@ -1,3 +1,5 @@
+% facts in Secion 4.4
+% program equivalent to BMLP architecture in Figure 3
 %p_1(X,Y) :- contains(X,Y).
 %p_1(X,Y) :- contains(X,Z), p_1(Z,Y).
 %p_2(X,Y) :- adjoins(X,Y).
