@@ -5,6 +5,9 @@ trap '' HUP INT
 ############################## To call ##############################
 # bash run_exp.sh SYSTEM_NAME DATASET REP
 
+
+# Timeout 15000s but with some extra time for loading relations
+OT=15100
 cur_dir=$(pwd)
 
 # check which datalog evaluation method to use
@@ -28,7 +31,7 @@ elif [ $2 == "partial-5000" ]; then
 elif [ $2 == "full-5000" ]; then
     repo="experiments/path/full"
     nodes=(5000)
-    p=(0.0001)
+    p=(0.0001 0.001 0.01 0.1 0.5 1)
     echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
 elif [ $2 == "FB15K" ]; then
     repo="experiments/FB15K"
@@ -68,17 +71,27 @@ for k in "${nodes[@]}"; do
             ;;
         # SWI-Prolog
             swipl)
-            swipl -s ${repo}/swi.pl --stack_limit=16000000000 -t 'compute' -q
+            tres=$(timeout ${OT}s swipl -s ${repo}/swi.pl --stack_limit=16000000000 -t 'compute' -q)
+            if [ $? -eq 124 ]; then
+            echo ${OT}
+            else
+            echo "${tres}"
+            fi
             ;;
         # B-Prolog
             bpl)
             cd ${repo}
-            ${cur_dir}/experiments/BProlog/bp -g "consult(b_prolog),compute" | sed -n "4p"
+            tres=$(timeout ${OT}s ${cur_dir}/experiments/BProlog/bp -g "consult(b_prolog),compute")
+            if [ $? -eq 124 ]; then
+            echo ${OT}
+            else
+            echo "${tres}" | sed -n "4p"
+            fi
             cd ${cur_dir} > /dev/null
             ;;
         # Clingo
             clg)
-            python -m clingo -q --time-limit=15000 ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
+            python -m clingo -q --time-limit=${OT} ${repo}/background.lp ${repo}/clingo.lp | sed -n "9p" | sed 's/^.*: //' | sed 's/.$//'
             ;;
         # Souffle
             souffle)
