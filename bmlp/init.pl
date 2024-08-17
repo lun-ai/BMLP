@@ -11,7 +11,7 @@
 init :- init(_).
 init(Path) :- var(Path),!,
               retractall(srcPath(_)),
-              assertz(srcPath('./')),
+              assertz(srcPath('./temp/')),
               assertz(lm_status(initialised)).
 init(Path) :-
               (exists_directory(Path) -> true;make_directory(Path)),

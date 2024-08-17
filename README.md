@@ -1,7 +1,6 @@
 # BMLP
-This repository hosts source code and experimental data for the paper _Boolean Matrix Logic Programming_.
-
-We explain:
+Thank you for visiting the GitHub repository for our paper _Boolean Matrix Logic Programming_.
+Here, we explain:
 - how to install BMLP modules
 - how to use BMLP modules
 - how to reproduce results in the paper
@@ -11,16 +10,17 @@ We explain:
 BMLP can be installed as a module into existing SWI-Prolog code at TARGET_FOLDER by running the following commands:
 ```
 git clone git@github.com:lun-ai/BMLP.git
-cp BMLP/bmlp.pl TARGET_FOLDER
-cp -r BMLP/bmlp TARGET_FOLDER
+cp -r BMLP/ TARGET_FOLDER
 ```
+BMLP depends on SWI-Prolog and we recommend version 9.2+.
 
 ## Using BMLP modules
 
 We show an example from bmlp/tests.
 
 ```commandline
-swipl -s example.pl -t ex_0
+cd BMLP/
+swipl -s example.pl -t rms_ex
 ```
 
 ```datalog
@@ -41,11 +41,11 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
 
  bmlp :- init('./temp'),
          compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
-         compute(rms,M1,M2,[output_id='path']),
+         rms(M1,M2,[output_id='path']),
          ln_print(M2).
 ```
 
-**Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is directory root. 
+**Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
 If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
 Otherwise, a matrix can be loaded using _lm_consult_ method.
 
@@ -71,14 +71,14 @@ swipl -s bmlp.pl -t run_tests
 
 ## Reproducing results
 
-All experiments have 10 repetitions.
-Non-BMLP methods runs can take up to many hours. 
-Some of these systems require installation (more details later).
+Experiments need to be run from BMLP/. All experiments have 10 repetitions.
+Non-BMLP methods runs can take up to many hours and some require installation (more details later).
 
 ### BMLP modules (BMLP-RMS & BMLP-SMP)
 
 To run on datasets DG and DG+partial (Table 2 and Figure 4, 5): 
 ```commandline
+cd BMLP/
 bash run_exp.sh bmlp-rms full-5000 10
 bash run_exp.sh bmlp-smp partial-5000 10
 bash run_exp.sh bmlp-rms partial-range 10
@@ -95,7 +95,6 @@ cp experiments/FB15K/results/* experiments/FB15K/runtime/
 ### Non-BMLP systems
 
 Skip to the next section to use the existing results for non-BMLP systems.
-
 Otherwise, to get runtime of SYSTEM_NAME in DATASET:
 ```commandline
 bash run_exp.sh SYSTEM_NAME DATASET 10
@@ -106,36 +105,31 @@ cp experiments/path/full/results/* experiments/path/full/runtime/
 cp experiments/path/partial/results/* experiments/path/partial/runtime/
 cp experiments/FB15K/results/* experiments/FB15K/runtime/
 ```
-
 DATASET options are:
 - partial-range
 - partial-5000
 - full-5000
 - FB15K
 
-B-Prolog and Souffle binaries are included.
-```commandline
-unzip experiments/systems.zip
-```
-
-SYSTEM_NAME options:
-- bpl:   B-Prolog [5] 
-- swipl: SWI-Prolog [4] (install from https://www.swi-prolog.org/Download.html)
-- clg: Clingo [1] (install from https://github.com/potassco/clingo/releases/)
-- souffle: Souffle [2] (build alternatively https://souffle-lang.github.io/build)
+SYSTEM_NAME options are:
+- bpl:   B-Prolog [5] (binary in experiments/systems.zip)
+- swipl: SWI-Prolog [4] ([install](https://www.swi-prolog.org/Download.html))
+- clg: Clingo [1] ([install](https://github.com/potassco/clingo/releases/))
+- souffle: Souffle [2] (binary in experiments/systems.zip)
 
 #### Experimental data and analysis
 
-CPU runtime of BMLP-RMS and other systems:
-experiments/path/full/runtime
-
-CPU runtime of BMLP-SMP and other systems:
-experiments/path/partial/runtime
-
+One can analysis runtime results from the BMLP/. 
 To generate statistical data in Table 2 and plot Figure 4 and 5:
 ```python
+cd BMLP/
 python experiments/runtime_analysis.py
 ```
+
+Runtime results in the paper are stored at:
+- experiments/path/full/runtime (CPU runtime of BMLP-RMS and other systems)
+- experiments/path/partial/runtime (CPU runtime of BMLP-SMP and other systems)
+
 
 ## References
 
