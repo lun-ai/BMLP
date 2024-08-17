@@ -117,7 +117,7 @@ SYSTEM_NAME options are:
 - clg: Clingo [1] ([install](https://github.com/potassco/clingo/releases/))
 - souffle: Souffle [2] (binary in experiments/systems.zip)
 
-#### Experimental data and analysis
+### Experimental data and analysis
 
 One can analysis runtime results from the BMLP/. 
 To generate statistical data in Table 2 and plot Figure 4 and 5:
