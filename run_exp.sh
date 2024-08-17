@@ -5,9 +5,9 @@ trap '' HUP INT
 ############################## To call ##############################
 # bash run_exp.sh SYSTEM_NAME DATASET REP
 
-
 cur_dir=$(pwd)
 
+# check which datalog evaluation method to use
 if [[ $1 == "all" ]]; then
   methods=("bpl" "souffle" "clg" "swipl")
 else
@@ -19,17 +19,17 @@ if [ $2 == "partial-range" ]; then
     repo="experiments/path/partial"
     nodes=(1000 2000 3000 4000 5000)
     p=(0.001)
-    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+    echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
 elif [ $2 == "partial-5000" ]; then
     repo="experiments/path/partial"
     nodes=(5000)
     p=(0.01 0.1 0.5)
-    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+    echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
 elif [ $2 == "full-5000" ]; then
     repo="experiments/path/full"
     nodes=(5000)
-    p=(0.0001 0.001 0.01 0.1 0.5 1)
-    echo "Dataset: ${2}, n:${nodes}, pe:${p}"
+    p=(0.0001)
+    echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
 elif [ $2 == "FB15K" ]; then
     repo="experiments/FB15K"
     nodes=(0)
@@ -40,10 +40,14 @@ else
     echo "Cannot find dataset"
 fi
 
+# create results folder
+mkdir -p ${repo}/results/
+
+# iterate over experiment parameters
 for k in "${nodes[@]}"; do
   for j in "${p[@]}"; do
       for i in $(seq 1 ${3}); do
-        if [ $2 != "experiments/FB15K" ]; then
+        if [ $2 != "FB15K" ]; then
             swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),background_to_dl('${repo}'),halt" -q
             cp ${repo}/background.pl ${repo}/background.lp
             fn="${j}pe_${k}nodes.txt"
@@ -85,7 +89,7 @@ for k in "${nodes[@]}"; do
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null
             ;;
-          esac>>${repo}/${method}_${fn}
+          esac>>${repo}/results/${method}_${fn}
         done
       done
   done

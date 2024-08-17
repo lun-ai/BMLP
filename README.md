@@ -71,25 +71,40 @@ swipl -s bmlp.pl -t run_tests
 
 ## Reproducing results
 
+All experiments have 10 repetitions.
+Non-BMLP methods runs can take up to many hours. 
+Some of these systems require installation (more details later).
+
 ### BMLP modules (BMLP-RMS & BMLP-SMP)
 
-To run on datasets DG and DG+partial: 
+To run on datasets DG and DG+partial (Table 2 and Figure 4, 5): 
 ```commandline
-bash run_exp.sh BMLP-RMS full-5000 10     (Table 2 and Figure 4) 
-bash run_exp.sh BMLP-SMP partial-5000 10  (Table 2 and Figure 4)
-bash run_exp.sh BMLP-RMS partial-range 10 (Table 2 and Figure 5)
+bash run_exp.sh bmlp-rms full-5000 10
+bash run_exp.sh bmlp-smp partial-5000 10
+bash run_exp.sh bmlp-rms partial-range 10
+cp experiments/path/full/results/* experiments/path/full/runtime/
+cp experiments/path/partial/results/* experiments/path/partial/runtime/
 ```
 
-To reproduce results on FB15K-237 [3]:
+To reproduce results on FB15K-237 [3] (Table 2):
 ```commandline
-bash run_exp.sh BMLP-RMS FB15K 10   (Table 2)
+bash run_exp.sh bmlp-rms FB15K 10
+cp experiments/FB15K/results/* experiments/FB15K/runtime/
 ```
 
-### Non-BMLP systems (can take up to hours)
+### Non-BMLP systems
 
-B-Prolog and Souffle binaries are included.
+Skip to the next section to use the existing results for non-BMLP systems.
+
+Otherwise, to get runtime of SYSTEM_NAME in DATASET:
 ```commandline
-unzip experiments/systems.zip
+bash run_exp.sh SYSTEM_NAME DATASET 10
+```
+All results need to be copied to runtime/ folders for analysis.
+```commandline
+cp experiments/path/full/results/* experiments/path/full/runtime/
+cp experiments/path/partial/results/* experiments/path/partial/runtime/
+cp experiments/FB15K/results/* experiments/FB15K/runtime/
 ```
 
 DATASET options are:
@@ -98,24 +113,29 @@ DATASET options are:
 - full-5000
 - FB15K
 
-SYSTEM_NAME other options (some require installation):
-- bpl:   B-Prolog [5] (binary in zip)
+B-Prolog and Souffle binaries are included.
+```commandline
+unzip experiments/systems.zip
+```
+
+SYSTEM_NAME options:
+- bpl:   B-Prolog [5] 
 - swipl: SWI-Prolog [4] (install from https://www.swi-prolog.org/Download.html)
-- clingo: Clingo [1] (install from https://github.com/potassco/clingo/releases/)
-- souffle: Souffle [2] (binary in zip or to build https://souffle-lang.github.io/build)
+- clg: Clingo [1] (install from https://github.com/potassco/clingo/releases/)
+- souffle: Souffle [2] (build alternatively https://souffle-lang.github.io/build)
 
 #### Experimental data and analysis
-
-To generate statistical data in Table 2 and plot Figure 4 and 5:
-```python
-python experiments/runtime_analysis.py
-```
 
 CPU runtime of BMLP-RMS and other systems:
 experiments/path/full/runtime
 
 CPU runtime of BMLP-SMP and other systems:
 experiments/path/partial/runtime
+
+To generate statistical data in Table 2 and plot Figure 4 and 5:
+```python
+python experiments/runtime_analysis.py
+```
 
 ## References
 

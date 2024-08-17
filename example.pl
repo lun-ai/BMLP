@@ -27,10 +27,10 @@ smp_ex :- % initialisation
         init('./temp'),
         % compile facts in DB
         % edges between node pairs as matrix M1
-        compile('./bmlp/tests/ex_p2.pl',db(edge,[node,node],_),M1),
+        compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
         % query the database that contains c2 as the first argument
         % encode this query as a vector V1
-        lm_select([c1],M1,V1,[output_id='ex_query']),
+        lm_select([a],M1,V1,[output_id='ex_query']),
         % produce a vector V2 as the result of query
         smp((V1,M1),V2),
         % print output vector if it has been loaded
