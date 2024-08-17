@@ -1,3 +1,4 @@
+% a larger set of facts for edge/path problem
 node(c1000).
 node(c999).
 node(c998).

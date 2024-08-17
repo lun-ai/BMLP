@@ -93,7 +93,7 @@ def plot_DG(Path, pes, N, methods):
     plt.legend(handles, labels, prop={'size': 13}, loc='lower right')
     plt.axhline(y=np.log10(15000), color='black', ls='--',label="OT")
     plt.tight_layout(pad=0.4)
-    plt.savefig('figures/exp_1_runtime.png')
+    plt.savefig('figures/runtime_fig4.png')
 
 
 # Figure 5
@@ -155,7 +155,7 @@ def plot_DG_partial(Path, pe, MaxN, methods):
                  color='grey',
                  ls='--')
     plt.tight_layout(pad=0.4)
-    plt.savefig('figures/exp_1_runtime_2.png')
+    plt.savefig('figures/runtime_fig5.png')
 
 
 def analysis_DG(Path, pes, N, methods):
@@ -231,26 +231,31 @@ def analysis_FB15K(Path):
 
 # mean and sterr data in Table 2
 # DG
-analysis_DG('experiments/connect/full/runtime/',
+print("\n################ DG ################")
+analysis_DG('experiments/path/full/runtime/',
                 [0.01, 0.1, 0.5],
                 5000,
                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
 # DG+partial
-analysis_DG('experiments/connect/partial/runtime/',
+print("\n################ DG+partial ################")
+analysis_DG('experiments/path/partial/runtime/',
                 [0.01, 0.1, 0.5],
                 5000,
                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
 # FB15K-237
+print("\n################ FB15K ################")
 analysis_FB15K('experiments/FB15K/runtime/')
 
 
 # plot Figure 4
-plot_DG('experiments/connect/full/runtime/',
+print("\n################ Figure 4 ################")
+plot_DG('experiments/path/full/runtime/',
         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
         5000,
         ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
 # plot Figure 5
-plot_DG_partial('experiments/connect/partial/runtime/',
+print("\n################ Figure 5 ################")
+plot_DG_partial('experiments/path/partial/runtime/',
                 0.001,
                 5000,
                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])

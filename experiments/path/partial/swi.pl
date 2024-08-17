@@ -1,16 +1,16 @@
 %:- [background].
 
-:- table connect/2.
+:- table path/2.
 
 :- set_prolog_flag(table_space, 16000000000).
 
-connect(A,B) :-
+path(A,B) :-
     edge(A,B).
-connect(A,B) :-
+path(A,B) :-
     edge(A,C),
-    connect(C,B).
+    path(C,B).
 
-closure :- connect(c1,_C2),fail.
+closure :- path(c1,_C2),fail.
 closure.
 
 compute :-

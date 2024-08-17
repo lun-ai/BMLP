@@ -1,7 +1,0 @@
-.decl edge(n:symbol,m:symbol)
-.input edge
-.decl connect(n:symbol,m:symbol)
-.output connect
-
-connect(x,y):-edge(x,y).
-connect(x,y):-edge(x,z),connect(z,y).

@@ -1,6 +1,10 @@
 # BMLP
 This repository hosts source code and experimental data for the paper _Boolean Matrix Logic Programming_.
-We provide instructions on usage and results re-generation.
+
+We explain:
+- how to install BMLP modules
+- how to use BMLP modules
+- how to reproduce results in the paper
 
 ## Installation
 
@@ -11,64 +15,136 @@ cp BMLP/bmlp.pl TARGET_FOLDER
 cp -r BMLP/bmlp TARGET_FOLDER
 ```
 
-In your code, import BMLP as a module.
-```
-:- use_module(bmlp).
-```
-
 ## Using BMLP modules
 
-Implementations of BMLP modules are callable from bmlp.pl, a module in SWI-Prolog.
-This modules imports source code from the bmlp/ folder.
-This folder contains methods to support boolean matrix operations in SWI-Prolog.
+We show an example from bmlp/tests.
 
-Some examples in examples/ show how to use BMLP modules.
-
-```swipl -s examples/example.pl -t ex_1```
-
-BMLP modules need to be initialised to a folder to save intermediate computation results and the default is directory root. 
-If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
-
+```commandline
+swipl -s example.pl -t ex_0
 ```
- bmlp :- init,
-         compile('examples/ex_p3.pl',db(edge,[node,node],_),M1),
-         compute(rms,M1,M2,[output_id='connect']),
+
+```datalog
+% Example 1 in paper
+node(a).
+node(b).
+node(c).
+
+edge(a,b).
+edge(b,c).
+```
+
+BMLP methods and boolean operations are callable from bmlp.pl as a module in SWI-Prolog.
+This module imports source code from the bmlp/ folder to support boolean matrix operations.
+
+```datalog
+:- use_module(bmlp).
+
+ bmlp :- init('./temp'),
+         compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
+         compute(rms,M1,M2,[output_id='path']),
          ln_print(M2).
 ```
 
-Facts in the database, e.g. edge(X:node,Y:node), are referred to by the _db_ term to focuses on target relation 
-and object types.
-M1 and M2 are matrices with the same format, represented by _matrix_ terms.
-For example, M1 is grounded by ```matrix(edge, [node, node], [10, 10],_)``` 
-since all entities are nodes and its dimension is 10 x 10.
+**Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is directory root. 
+If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
+Otherwise, a matrix can be loaded using _lm_consult_ method.
 
-Examples have been provided in the examples/.
-Existing unit tests refer to these examples which can be invoked by
+**Compilation:** Target relation and object types in the database, e.g. edge(X:node,Y:node), are expressed to by the _db_ term.
+
+**Boolean matrix computation:** This example calls BMLP-RMS module (Figure 2 in paper) and produce matrix M2 (basename "path").
+M1 and M2 are matrices with the same format, represented by _matrix_ terms.
+For example, M1 is grounded by ```matrix(edge, [node, node], [4, 4],_)``` 
+since all entities are four nodes and its dimension is 4 x 4.
+The transitive closure matrix M2 has been given an identifier "3".
+```text
+path3 (3x3):
+         a b c
+a       |0 1 1| % path(a, b). path(a, c). 
+b       |0 0 1| % path(b, c).
+c       |0 0 0|
 ```
-swipl -s bmlp.pl -t "run_tests"
+
+Unit tests refer to examples in bmlp/tests which can be invoked by
+```commandline
+swipl -s bmlp.pl -t run_tests
 ```
 
 ## Reproducing results
 
-Run the following cmd in the BMLP/ root folder.
+All experiments have 10 repetitions.
+Non-BMLP methods runs can take up to many hours. 
+Some of these systems require installation (more details later).
 
-```bash run_exp.sh SYSTEM_NAME experiments/networks/connect/SUB_FOLDER REP```
+### BMLP modules (BMLP-RMS & BMLP-SMP)
 
-SYSTEM_NAME maps to the following systems (some require installation):
+To run on datasets DG and DG+partial (Table 2 and Figure 4, 5): 
+```commandline
+bash run_exp.sh bmlp-rms full-5000 10
+bash run_exp.sh bmlp-smp partial-5000 10
+bash run_exp.sh bmlp-rms partial-range 10
+cp experiments/path/full/results/* experiments/path/full/runtime/
+cp experiments/path/partial/results/* experiments/path/partial/runtime/
+```
 
+To reproduce results on FB15K-237 [3] (Table 2):
+```commandline
+bash run_exp.sh bmlp-rms FB15K 10
+cp experiments/FB15K/results/* experiments/FB15K/runtime/
+```
+
+### Non-BMLP systems
+
+Skip to the next section to use the existing results for non-BMLP systems.
+
+Otherwise, to get runtime of SYSTEM_NAME in DATASET:
+```commandline
+bash run_exp.sh SYSTEM_NAME DATASET 10
+```
+All results need to be copied to runtime/ folders for analysis.
+```commandline
+cp experiments/path/full/results/* experiments/path/full/runtime/
+cp experiments/path/partial/results/* experiments/path/partial/runtime/
+cp experiments/FB15K/results/* experiments/FB15K/runtime/
+```
+
+DATASET options are:
+- partial-range
+- partial-5000
+- full-5000
+- FB15K
+
+B-Prolog and Souffle binaries are included.
 ```commandline
 unzip experiments/systems.zip
 ```
 
-- bpl:   B-Prolog (binary in BProlog/)
-- swipl: SWI-Prolog (Install from https://www.swi-prolog.org/Download.html)
-- clingo: Clingo (install from https://github.com/potassco/clingo/releases/)
-- souffle: Souffle (binary in Souffle/ or following instructions from https://souffle-lang.github.io/build)
+SYSTEM_NAME options:
+- bpl:   B-Prolog [5] 
+- swipl: SWI-Prolog [4] (install from https://www.swi-prolog.org/Download.html)
+- clg: Clingo [1] (install from https://github.com/potassco/clingo/releases/)
+- souffle: Souffle [2] (build alternatively https://souffle-lang.github.io/build)
 
-### Experimental data
+#### Experimental data and analysis
 
 CPU runtime of BMLP-RMS and other systems:
-experiments/connect/full/runtime
+experiments/path/full/runtime
 
 CPU runtime of BMLP-SMP and other systems:
-experiments/connect/partial/runtime
+experiments/path/partial/runtime
+
+To generate statistical data in Table 2 and plot Figure 4 and 5:
+```python
+python experiments/runtime_analysis.py
+```
+
+## References
+
+[1] M. Gebser, R. Kaminski, B. Kaufmann, and T. Schaub, ‘Clingo = ASP + Control: Preliminary Report’, Technical Communications of the Thirtieth International Conference on Logic Programming (ICLP’14), vol. 14, pp. 1–9, 2014.
+
+[2] B. Scholz, H. Jordan, P. Subotić, and T. Westmann, ‘On fast large-scale program analysis in Datalog’, in Proceedings of the 25th International Conference on Compiler Construction, in CC 2016. New York, NY, USA: Association for Computing Machinery, Mar. 2016, pp. 196–206. doi: 10.1145/2892208.2892226.
+
+[3] K. Toutanova and D. Chen, ‘Observed versus latent features for knowledge base and text inference’, in Proceedings of the 3rd Workshop on Continuous Vector Space Models and their Compositionality, A. Allauzen, E. Grefenstette, K. M. Hermann, H. Larochelle, and S. W. Yih, Eds., Beijing, China: Association for Computational Linguistics, 2015, pp. 57–66. doi: 10.18653/v1/W15-4007.
+
+[4] J. Wielemaker, T. Schrijvers, M. Triska, and T. Lager, ‘SWI-Prolog’, Theory and Practice of Logic Programming, vol. 12, no. 1–2, pp. 67–96, 2012.
+
+[5] N.-F. Zhou, ‘The language features and architecture of B-Prolog’, Theory and Practice of Logic Programming, vol. 12, no. 1–2, pp. 189–218, Jan. 2012, doi: 10.1017/S1471068411000445.

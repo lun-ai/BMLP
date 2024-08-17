@@ -1,0 +1,8 @@
+.decl edge(n:symbol,m:symbol)
+.input edge
+.decl path(n:symbol,m:symbol)
+path(x,y):-edge(x,y).
+path(x,y):-edge(x,z),path(z,y).
+.decl closure(n:symbol,m:symbol)
+closure("c1",x) :- path("c1",x).
+.output closure
