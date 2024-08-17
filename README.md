@@ -8,7 +8,7 @@ Here, we explain:
 ## Installation
 
 BMLP can be installed as a module into existing SWI-Prolog code at TARGET_FOLDER by running the following commands:
-```
+```commandline
 git clone git@github.com:lun-ai/BMLP.git
 cp -r BMLP/ TARGET_FOLDER
 ```
@@ -121,7 +121,7 @@ SYSTEM_NAME options are:
 
 One can analysis runtime results from the BMLP/. 
 To generate statistical data in Table 2 and plot Figure 4 and 5:
-```python
+```commandline
 cd BMLP/
 python experiments/runtime_analysis.py
 ```
