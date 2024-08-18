@@ -46,15 +46,15 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
 ```
 
 **Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
-If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
+If a database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
 Otherwise, a matrix can be loaded using _lm_consult_ method.
 
-**Compilation:** Target relation and object types in the database, e.g. edge(X:node,Y:node), are expressed to by the _db_ term.
+**Compilation:** Target relation and object types in the database, e.g. edge(X:node,Y:node), are expressed by the _db_ term.
 
 **Boolean matrix computation:** This example calls BMLP-RMS module (Figure 2 in paper) and produce matrix M2 (basename "path").
 M1 and M2 are matrices with the same format, represented by _matrix_ terms.
-For example, M1 is grounded by ```matrix(edge, [node, node], [4, 4],_)``` 
-since all entities are four nodes and its dimension is 4 x 4.
+For example, M1 is grounded by ```matrix(edge, [node, node], [3, 3],_)``` 
+since all entities are 3 nodes and its dimension is 3 x 3.
 The transitive closure matrix M2 has been given an identifier "3".
 ```text
 path3 (3x3):

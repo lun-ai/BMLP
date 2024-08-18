@@ -7,8 +7,9 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ./bmlp/tests/ex_p2.pl
-rms_ex :- % initialisation
-        % use a path for matrix computation (default is project root)
+rms_ex :-
+        % initialisation
+        % use a path for matrix computation (default is ./temp)
         init('./temp'),
         % compile facts in DB
         % edges between node pairs as matrix M1
@@ -22,8 +23,9 @@ rms_ex :- % initialisation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ./bmlp/tests/ex_p2.pl
-smp_ex :- % initialisation
-        % use a path for matrix computation (default is project root)
+smp_ex :-
+        % initialisation
+        % use a path for matrix computation (default is ./temp)
         init('./temp'),
         % compile facts in DB
         % edges between node pairs as matrix M1
