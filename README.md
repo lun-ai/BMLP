@@ -81,7 +81,7 @@ To run on datasets DG and DG+partial (Table 2 and Figure 4, 5):
 cd BMLP/
 bash run_exp.sh bmlp-rms full-5000 10
 bash run_exp.sh bmlp-smp partial-5000 10
-bash run_exp.sh bmlp-rms partial-range 10
+bash run_exp.sh bmlp-smp partial-range 10
 cp experiments/path/full/results/* experiments/path/full/runtime/
 cp experiments/path/partial/results/* experiments/path/partial/runtime/
 ```
