@@ -46,17 +46,21 @@ composed :-
         init('./temp'),
         compile('./bmlp/tests/ex_p6.pl',db(contains,[location,location],_),M1),
         compile('./bmlp/tests/ex_p6.pl',db(adjoins,[location,location],_),M2),
-        rms(M1,M3),
+        rms(M1,M3,[output_name='hasPlace']),
         lm_print(M3),
+        % matrix transpose
         transpose(M3,MT3),
         lm_print(MT3),
+        % matrix adding identity
         addI(MT3,MIT3),
         lm_print(MIT3),
         transpose(M2,MT2),
         lm_print(MT2),
+        % matrix addition
         add((M2,MT2),M4),
         lm_print(M4),
-        mul((MIT3,M4),M5),
+        % matrix multiplication
+        mul((MIT3,M4),M5,[output_name='indirectlyPartOf']),
         lm_print(M5),
-        negate(M5,MN5),
+        negate(M5,MN5,[output_name='isForeign']),
         lm_print(MN5).

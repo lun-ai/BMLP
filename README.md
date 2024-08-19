@@ -42,7 +42,7 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
  bmlp :- init('./temp'),
          compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
          rms(M1,M2,[output_name='path']),
-         ln_print(M2).
+         lm_print(M2).
 ```
 
 **Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
@@ -53,7 +53,7 @@ Otherwise, a matrix can be loaded using _lm_consult_ method.
 
 **Boolean matrix computation:** This example calls BMLP-RMS module (Figure 2 in paper) and produce matrix M2 (basename "path").
 M1 and M2 are matrices with the same format, represented by _matrix_ terms.
-For example, M1 is grounded by ```matrix(edge, [node, node], [3, 3],_)``` 
+For example, M1 is grounded by ```matrix([edge,1], [node, node], [3, 3],_)``` 
 since all entities are 3 nodes and its dimension is 3 x 3.
 The transitive closure matrix M2 has been given an identifier "3".
 ```text

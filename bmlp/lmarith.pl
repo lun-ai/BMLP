@@ -72,7 +72,6 @@ M @@ Path is_lmatrix_p M @@ Path:- !, nonvar(M), nonvar(Path).
 
 
 % Square of matrices
-
 lm_square(Path,[P,M1],D,[P,M2]) :- M2 is M1*2,
 %    lm_trans(Path,[P,M1],[_TP,_TP_M1]),
 	lm_prod(Path,[P,M1],[P,M1],D,[P,M2]), !.
@@ -83,7 +82,6 @@ lm_square_p(Path,[P,M1],[P,M2]) :- M2 is M1*2,
 
 
 % lm_prod/4 - Ms is product of matrices M1,M2
-
 lm_prod(Path,[P1,M1],[P2,M2],D,[P3,M3]) :-
     nonvar(P3),
     (nonvar(M3);M3 is M1+M2),
@@ -104,7 +102,8 @@ lm_trans(Path,[P,M]) :-
     lm_trans(Path,[P,M],_).
 % should always specify the dimensions
 lm_trans(Path,[P,M],[TP,M]) :-
-	mname(t,P,TP), mfname(Path,TP,M,Mname),
+	(nonvar(TP);mname(t,P,TP)),
+	mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
 	% for m x n matrices where m < n
@@ -119,12 +118,15 @@ lm_trans(Path,[P,M],[TP,M]) :-
 	write_row_matrix__(TP_M,Y,BXs), fail.
 lm_trans(Path,[P,M],[TP,M]) :- !,
 	told,
-	mname(t,P,TP), mfname(Path,TP,M,Mname),
+	(nonvar(TP);mname(t,P,TP)),
+	mfname(Path,TP,M,Mname),
 	consult(Mname).
 % use the dimension from matrices
 lm_trans(Path,[P,M],[D1,D2],[TP,M]) :-
-    mname(t,P,TP), mfname(Path,TP,M,Mname),
-	mname(P,M,P_M), mname(TP,M,TP_M),
+    (nonvar(TP);mname(t,P,TP)),
+    mfname(Path,TP,M,Mname),
+	mname(P,M,P_M),
+	mname(TP,M,TP_M),
 	tell(Mname),
 	told,
 	dim_list(D1,Rows),
@@ -143,7 +145,8 @@ lm_trans_(Mfname,P_M,TP_M,Rows,Y):-
 lm_trans_p(Path,[P,M]) :-
     lm_trans_p(Path,[P,M],_).
 lm_trans_p(Path,[P,M],[TP,M]) :-
-    mname(t,P,TP), mfname(Path,TP,M,Mname),
+    (nonvar(TP);mname(t,P,TP)),
+    mfname(Path,TP,M,Mname),
 	mname(P,M,P_M), mname(TP,M,TP_M),
 	tell(Mname),
 	told,
@@ -163,11 +166,10 @@ lm_trans_p_(Mfname,P_M,TP_M,Y):-
 
 
 % lm_prods of list of lmatrices
-
-lm_prods(_,P,[Depth],[P,Depth]) :- !.
-lm_prods(Path,P,[D|Ds],M) :-
-	lm_prods(Path,P,Ds,M1),
-	M is_lmatrix [P,D] * M1.
+%lm_prods(_,P,[Depth],[P,Depth]) :- !.
+%lm_prods(Path,P,[D|Ds],M) :-
+%	lm_prods(Path,P,Ds,M1),
+%	M is_lmatrix [P,D] * M1.
 %	lm_prod([P,D],M1,M).
 
 
@@ -195,39 +197,28 @@ pprod_(P_M1,P_M2,P_M3,X) :-
 
 or(A,B,C) :- C is A \/ B.
 
-pprod_p(Path,[P,M1],[P,M2],[P,M3]) :-
-    mname(t,P,TP),
-	mname(P,M1,P_M1), mname(TP,M2,TP_M2), mname(P,M3,P_M3),
-	mfname(Path,P,M3,M3fname),
-	tell(M3fname),
-	told,
-	concurrent_forall(
-	    call(P_M1,X,_),
-	    (
-	        pprod_p_(P_M1,TP_M2,X,BYs),
-	        write_row_matrix_(M3fname,P_M3,X,BYs,append)
-	    )
-	),
-	consult(M3fname),!.
-pprod_p_(P_M1,TP_M,X,BYs1) :-
-    call(P_M1,X,BXs),!,
-    findall(Y,(call(TP_M,Y,BYs),BXs/\BYs>0),Ys1),
-%    findall(Y,call(TP_M,Y,_),Ys),
-%    length(Ys,L),
-%    length(Ys1,L),
-%    concurrent_maplist(pprod_p__(P_M1,TP_M,X),Ys,Ys1),
-	lm_stob1(Ys1,BYs1).
-%pprod_p__(P_M,TP_M,X,Y,Y) :-
-%	call(P_M,X,BXs),
-%	call(TP_M,Y,BYs),
-%    BZs is BXs/\BYs,
-%    BZs>0,!.
-%pprod_p__(_,_,_,_,-1).
-
+% Parallel version of pprod (need to not use transpose here)
+%pprod_p(Path,[P,M1],[P,M2],[P,M3]) :-
+%    (nonvar(TP);mname(t,P,TP)),
+%	mname(P,M1,P_M1), mname(TP,M2,TP_M2), mname(P,M3,P_M3),
+%	mfname(Path,P,M3,M3fname),
+%	tell(M3fname),
+%	told,
+%	concurrent_forall(
+%	    call(P_M1,X,_),
+%	    (
+%	        pprod_p_(P_M1,TP_M2,X,BYs),
+%	        write_row_matrix_(M3fname,P_M3,X,BYs,append)
+%	    )
+%	),
+%	consult(M3fname),!.
+%pprod_p_(P_M1,TP_M,X,BYs1) :-
+%    call(P_M1,X,BXs),!,
+%    findall(Y,(call(TP_M,Y,BYs),BXs/\BYs>0),Ys1),
+%	lm_stob1(Ys1,BYs1).
 
 
 % Add diagonal to a given logical matrix
-
 lm_add_diagonal(Path,[P,M],D,[Pu,M]) :-
 	name(P,P1),
 	(nonvar(Pu);(name('1U',U1),appends([P1,U1],Pu1))),
@@ -266,8 +257,8 @@ mnames([H|T],Name) :-
 
 
 lm_negate(Path,[P,M],D,[P1,M]) :-
+    (nonvar(P1);mname('neg_',P,P1)),
     mname(P,M,P_M),
-    mname('neg_',P,P1),
     mname(P1,M,P_M1),
     mfname(Path,P1,M,M1fname),
     Bits is 1<<D - 1,
@@ -281,9 +272,9 @@ lm_negate_(M1fname,P_M,P_M1,X,Bits) :-
     Y1 is Bits /\ \Y,
     write_row_matrix_(M1fname,P_M1,X,Y1,append).
 
+
 % lm_eq/3 - test if two matrices are identical
 %   in every row
-
 lm_eq(_Path,[P1,M1],[P2,M2]) :-
     mname(P1,M1,PM1), mname(P2,M2,PM2),
     \+((call(PM1,X,Y1),call(PM2,X,Y2),Y1 =\= Y2)).
@@ -297,9 +288,9 @@ lm_eq(_Path,[P1,M1],[P2,M2]) :-
 %        Y1 == Y2
 %    ).
 
+
 % lm_total_order/3 - test whether every row of 1st matrix is a subset
 %   of the corresponding row of the second
-
 lm_total_order([P1,M1],[P2,M2],D) :-
 	mname(P1,M1,P_M1), mname(P2,M2,P_M2),
 	dim_list(D,L),
@@ -311,7 +302,6 @@ lm_total_order_(P_M1,P_M2,X) :-
 
 % lm_submatrix/4 - find all rows of the 2nd matrix that is a subset
 %   of the Xth row of the 1st matrix
-
 lm_submatrix(X,[P1,M1],[P2,M2],Ns) :-
     mname(P1,M1,P_M1), mname(P2,M2,P_M2),
     lm_submatrix_(X,P_M1,P_M2,Ns).
@@ -331,7 +321,6 @@ lm_submatrix_r_(X,P_M1,P_M2,Ns) :-
 
 % For all row i in the first matrix, find all indices j of rows
 % in the second matrix where the row j contains row i
-
 all_submatrix(Path,[P,M1],[P,M2],[P,M3]) :-
     (nonvar(M3);M3 is M1 + M2),!,
     mname(P,M1,P_M1),
@@ -370,7 +359,6 @@ all_submatrix_p_(Mfname,P_M1,P_M2,P_M3,X) :-
 
 % For all indices i of rows, subtract row i in the second matrix
 % from row i in the first matrix
-
 lm_subtract(Path,[P1,M1],[P2,M2],[P3,M3]) :-
     (nonvar(M3);M3 is M1 + M2),!,
     mname(P1,M1,P_M1),
@@ -407,7 +395,6 @@ lm_subtract_p(Path,[P,M1],[P,M2],[P,M3]) :-
 
 % For all indices i of rows, add row i in the second matrix
 % with row i in the first matrix
-
 lm_add(Path,[P1,M1],[P2,M2],[P3,M3]) :-
     (nonvar(P3),nonvar(M3);M3 is M1 + M2),!,
     mname(P1,M1,P_M1),
@@ -457,7 +444,6 @@ lm_add_p(Path,[P,M1],[P,M2],[P,M3]) :-
 
 % lm_mkcton/1 - make one-one mapping from Herbrand Base to Natural numbers
 %	and create auxiliary primitives based on frequent pairings.
-
 lm_mkcton(Cs) :-
 	File= 'herbn.pl',
 	lm_mkcton(Cs,File).
@@ -497,9 +483,7 @@ lm_mkcton(P,[H|T],N) :-
 	lm_mkcton(P,T,N1), !.
 
 
-
 % lm_stob/2 - convert a subset of the Herbrand Base to a Bitset
-
 lm_stob(Set,Bitset) :-
 	lm_stob(Set,0,Bitset).
 
@@ -510,9 +494,7 @@ lm_stob([H|T],Bs1,Bs2) :-
 	lm_stob(T,Bs3,Bs2), !.
 
 
-
 % lm_stob1/2 - convert a set of Numbers to a Bitset
-
 lm_stob1(NSet,Bitset) :-
     set_max_integer_size,
 	lm_stob1(NSet,0,Bitset).
@@ -525,20 +507,20 @@ lm_stob1([N|T],Bs1,Bs2) :-
 	Bs3 is Bs1\/1<<N,
 	lm_stob1(T,Bs3,Bs2), !.
 
+
 % lm_btos/2 - convert a Bitset to a subset of the Herbrand Base
-
-lm_btos(Bitset,Set) :-
+lm_btos(P,Bitset,Set) :-
     set_max_integer_size,
-	lm_btos(Bitset,[],Set).
+	lm_btos(P,Bitset,[],Set).
 
-lm_btos(0,Set,Set) :- !.
-lm_btos(Bs1,Set1,[H|Set2]) :-
-	N is lsb(Bs1), ntoc(N,H),
+lm_btos(_,0,Set,Set) :- !.
+lm_btos(P,Bs1,Set1,[H|Set2]) :-
+	N is lsb(Bs1), ntoc(P,N,H),
 	Bs2 is Bs1/\ \(1<<N),
-	lm_btos(Bs2,Set1,Set2), !.
+	lm_btos(P,Bs2,Set1,Set2), !.
+
 
 % lm_btos1/2 - convert a Bitset to a set of Numbers
-
 lm_btos1(Bitset,Set) :-
     set_max_integer_size,
 	lm_btos1(Bitset,[],Set).
@@ -549,6 +531,8 @@ lm_btos1(Bs1,Set1,[N|Set2]) :-
 	Bs2 is Bs1/\ \(1<<N),
 	lm_btos1(Bs2,Set1,Set2), !.
 
+
+% a list of 0 and 1s to a bitcode (as an integer)
 lm_ltob(Bl,Bs) :-
     set_max_integer_size,
     lm_ltob(Bl,0,Bs).
@@ -559,6 +543,8 @@ lm_ltob([B|Bl],Bs1,Bs2) :-
     Bs3 is (Bs1 \/ B) << 1,
     lm_ltob(Bl,Bs3,Bs2),!.
 
+
+% a bitcode (as an integer) to a list of 0 and 1s
 lm_btol(Bs,D,Bl) :-
     set_max_integer_size,
     dim_list(D,L),
@@ -608,6 +594,8 @@ lm_loaded([P,M]) :-
 lm_loaded(matrix([P,M],_,_,_)) :-
     mname(P,M,P_M),
     current_predicate(P_M/2).
+
+% load a matrix if it has not been loaded
 lm_consult([P,M]) :-
     (lm_loaded([P,M]) -> true;
     (srcPath(BasePath),
@@ -618,6 +606,9 @@ lm_consult(matrix(M,_,_,_)) :-
     (srcPath(BasePath),
     atomic_list_concat([BasePath|M],F),
     consult(F))).
+
+
+% unload a matrix
 lm_unload([P,M]) :-
     srcPath(BasePath),
     mfname(BasePath,P,M,F),
@@ -626,6 +617,10 @@ lm_unload(matrix(M,_,_,_)) :-
     srcPath(BasePath),
     atomic_list_concat([BasePath|M],F),
     unload_file(F).
+
+
+% print a matrix given a matrix term
+% require the dimensions of matrix
 lm_print(M) :-
     lm_consult(M),
     lm_print_(M).
@@ -643,3 +638,28 @@ lm_print__(P,T,D,X) :-
     lm_btol(Y,D,L),
     atomics_to_string(L,' ',A),
     format('~w\t|~w|\n',[C,A]).
+
+% convert a boolean matrix into a list of facts
+lm_to_facts(matrix([P,N],[T,T],[D,D],_),Fs) :- !,
+    lm_consult([P,N]),
+    mname(P,N,P_N),
+    srcPath(BasePath),
+    mfname(BasePath,T,'_csmap.pl',Fn),
+    consult(Fn),
+    dim_list(D,L),
+    findall(Ts,(member(X,L),lm_to_facts_(P,P_N,T,T,X,Ts)),Tss),
+    append(Tss,Fs).
+lm_to_facts(matrix([P,N],[T1,T2],[D1,_],_),Fs) :-
+    lm_consult([P,N]),
+    mname(P,N,P_N),
+    srcPath(BasePath),
+    atomic_list_concat([BasePath,T1,'_',T2,'_csmap.pl'],Fn),
+    consult(Fn),
+    dim_list(D1,L),
+    findall(Ts,(member(X,L),lm_to_facts_(P,P_N,T1,T2,X,Ts)),Tss),
+    append(Tss,Fs).
+lm_to_facts_(P,P_N,T1,T2,X,Ts) :-
+    ntoc(T1,X,C),
+    call(P_N,X,Y),
+    lm_btos(T2,Y,S),
+    findall(T,(member(C1,S),T=..[P,C,C1]),Ts).
