@@ -41,20 +41,20 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
 
  bmlp :- init('./temp'),
          compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
-         rms(M1,M2,[output_id='path']),
-         ln_print(M2).
+         rms(M1,M2,[output_name='path']),
+         lm_print(M2).
 ```
 
 **Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
-If database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
+If a database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
 Otherwise, a matrix can be loaded using _lm_consult_ method.
 
-**Compilation:** Target relation and object types in the database, e.g. edge(X:node,Y:node), are expressed to by the _db_ term.
+**Compilation:** Target relation and object types in the database, e.g. edge(X:node,Y:node), are expressed by the _db_ term.
 
 **Boolean matrix computation:** This example calls BMLP-RMS module (Figure 2 in paper) and produce matrix M2 (basename "path").
 M1 and M2 are matrices with the same format, represented by _matrix_ terms.
-For example, M1 is grounded by ```matrix(edge, [node, node], [4, 4],_)``` 
-since all entities are four nodes and its dimension is 4 x 4.
+For example, M1 is grounded by ```matrix([edge,1], [node, node], [3, 3],_)``` 
+since all entities are 3 nodes and its dimension is 3 x 3.
 The transitive closure matrix M2 has been given an identifier "3".
 ```text
 path3 (3x3):
@@ -81,7 +81,7 @@ To run on datasets DG and DG+partial (Table 2 and Figure 4, 5):
 cd BMLP/
 bash run_exp.sh bmlp-rms full-5000 10
 bash run_exp.sh bmlp-smp partial-5000 10
-bash run_exp.sh bmlp-rms partial-range 10
+bash run_exp.sh bmlp-smp partial-range 10
 cp experiments/path/full/results/* experiments/path/full/runtime/
 cp experiments/path/partial/results/* experiments/path/partial/runtime/
 ```

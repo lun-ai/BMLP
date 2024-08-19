@@ -43,6 +43,7 @@ compute(A,B,C) :-
 compute(_,_,_) :-
     throw(error(bmlp_computation_error,_)).
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Boolean matrix operations
 
@@ -52,7 +53,7 @@ compute(mul,[matrix([P,N],[Q1,Q2],[D1,D2],_),matrix([P1,N1],[Q2,Q3],[D2,D3],_)],
     lm_consult([P,N]),
     lm_consult([P1,N1]),
     atomic_list_concat([P,N,'_mul_',P1,N1,'_'],P2),
-    assign_name(Args,output_id,P2,P3),
+    assign_name(Args,output_name,P2,P3),
     [P3,N2] @@ Path is_lmatrix_p ([P,N],[D1,D2]) @@ Path * ([P1,N1],[Q2,Q3]) @@ Path,!.
 
 compute(add,[matrix([P,N],Qs,Dims,_),matrix([P1,N1],Qs,Dims,_)],
@@ -61,32 +62,36 @@ compute(add,[matrix([P,N],Qs,Dims,_),matrix([P1,N1],Qs,Dims,_)],
     lm_consult([P,N]),
     lm_consult([P1,N1]),
     atomic_list_concat([P,N,'_add_',P1,N1,'_'],P2),
-    assign_name(Args,output_id,P2,P3),
+    assign_name(Args,output_name,P2,P3),
     [P3,N2] @@ Path is_lmatrix_p ([P,N],Dims) @@ Path + ([P1,N1],Dims) @@ Path,!.
 
-compute(addI,matrix(M1,Qs,Dims,_),matrix(M2,Qs,Dims,_),_Args) :-
+compute(addI,matrix(M1,Qs,Dims,_),matrix([P,N],Qs,Dims,_),Args) :-
     srcPath(Path),
     lm_consult(M1),
-    M2 @@ Path is_lmatrix_p (M1,Dims) @@ Path \/ 1,!.
+    assign_name(Args,output_name,_,P),
+    [P,N] @@ Path is_lmatrix_p (M1,Dims) @@ Path \/ 1,!.
 
-compute(transpose,matrix(M1,[Q1,Q2],[D1,D2],_),matrix(M2,[Q2,Q1],[D2,D1],_),_Args) :-
+compute(transpose,matrix(M1,[Q1,Q2],[D1,D2],_),matrix([P,N],[Q2,Q1],[D2,D1],_),Args) :-
     srcPath(Path),
     lm_consult(M1),
-    M2 @@ Path is_lmatrix_p (M1,[D1,D2]) @@ Path ^t,!.
+    assign_name(Args,output_name,_,P),
+    [P,N] @@ Path is_lmatrix_p (M1,[D1,D2]) @@ Path ^t,!.
 
-compute(negate,matrix(M1,Qs,Dims,_),matrix(M2,Qs,Dims,_),_Args) :-
+compute(negate,matrix(M1,Qs,Dims,_),matrix([P,N],Qs,Dims,_),Args) :-
     srcPath(Path),
     lm_consult(M1),
-    M2 @@ Path is_lmatrix_p \+((M1,Dims)) @@ Path,!.
+    assign_name(Args,output_name,_,P),
+    [P,N] @@ Path is_lmatrix_p \+((M1,Dims)) @@ Path,!.
 
 %compute(eq,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BMLP modules
 
 compute(rms,matrix([P,N],[Q,Q],Dim,_),matrix([P1,Depth],[Q,Q],Dim,_),Args) :-
     srcPath(Path),
-    assign_name(Args,output_id,P,P1),
+    assign_name(Args,output_name,P,P1),
     rms_(Path,[P,N],Dim,[P1,Depth]),!.
 compute(smp,[matrix(V1,[Q1,Q],[1,D],_),matrix(M,[Q,Q],[D,D],_)],matrix(V2,[Q1,Q],[1,D],_),_Args) :-
     srcPath(Path),

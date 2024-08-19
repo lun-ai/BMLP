@@ -273,6 +273,7 @@ my_plus(A,B,C) :-
     C is A + B.
 
 
+% checks if a user has assigned a name, else bound with NewValue
 assign_name(Args,Key,NewValue,Value) :-
     \+ var(Key),
     get_arg(Args,Key,Value1),

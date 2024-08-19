@@ -7,4 +7,3 @@ node(c4).
 edge(c1,c2).
 edge(c2,c3).
 edge(c3,c4).
-

@@ -13,6 +13,8 @@
         compile/3,
         compile/4,
         lm_consult/1,
+        lm_unload/1,
+        lm_to_facts/2,
         lm_print/1,
         lm_select/3,
         lm_select/4,
