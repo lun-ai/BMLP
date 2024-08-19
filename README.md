@@ -39,10 +39,25 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
 ```datalog
 :- use_module(bmlp).
 
- bmlp :- init('./temp'),
-         compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
-         rms(M1,M2,[output_name='path']),
-         lm_print(M2).
+bmlp_ex :- init('./temp'),
+           compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
+           rms(M1,M2,[output_name='path']),
+           lm_print(M2).
+```
+Calling the goal _bmlp_ex_ prints the output from the BMLP-RMS module. 
+```text
+path3 (3x3):
+         a b c
+a       |0 1 1| % path(a, b). path(a, c). 
+b       |0 0 1| % path(b, c).
+c       |0 0 0|
+```
+One can convert a matrix into facts by adding the following body to bmlp_ex. 
+This would print out the list [path(a,b), path(a,c), path(b,c)].
+```datalog
+...,
+lm_to_facts(M2,Fs),
+writeln(Fs).
 ```
 
 **Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
@@ -56,15 +71,9 @@ M1 and M2 are matrices with the same format, represented by _matrix_ terms.
 For example, M1 is grounded by ```matrix([edge,1], [node, node], [3, 3],_)``` 
 since all entities are 3 nodes and its dimension is 3 x 3.
 The transitive closure matrix M2 has been given an identifier "3".
-```text
-path3 (3x3):
-         a b c
-a       |0 1 1| % path(a, b). path(a, c). 
-b       |0 0 1| % path(b, c).
-c       |0 0 0|
-```
 
-Unit tests refer to examples in bmlp/tests which can be invoked by
+**BMLP test suite:** Unit tests of compilation, BMLP modules and boolean matrix operations refer to examples in 
+bmlp/tests which can be invoked by
 ```commandline
 swipl -s bmlp.pl -t run_tests
 ```
@@ -129,7 +138,6 @@ python experiments/runtime_analysis.py
 Runtime results in the paper are stored at:
 - experiments/path/full/runtime (CPU runtime of BMLP-RMS and other systems)
 - experiments/path/partial/runtime (CPU runtime of BMLP-SMP and other systems)
-
 
 ## References
 
