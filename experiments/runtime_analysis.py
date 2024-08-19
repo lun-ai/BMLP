@@ -36,6 +36,7 @@ markers = {
 }
 
 OT = 15000
+rounding = 4
 
 
 # Figure 4
@@ -71,8 +72,9 @@ def plot_DG(Path, pes, N, methods):
         print(data[-1])
         for p_ in data.keys():
             if p_ > 0:
-                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
+                print('$' + str(np.around(np.mean(data[p_]), rounding)) + ' \\pm ' + str(
+                    np.around(np.std(data[p_]), rounding)) + '$')
                 p.append(p_)
                 u.append(min(np.mean(runtimes), OT))
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
@@ -86,12 +88,11 @@ def plot_DG(Path, pes, N, methods):
         plt.xticks(np.round(np.log10(p), 2))
     plt.xlabel(r'Density of edges $p_t$ ($log_{10}$)', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
-    # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
     labels, handles = zip(
         *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13}, loc='lower right')
-    plt.axhline(y=np.log10(15000), color='black', ls='--',label="OT")
+    plt.axhline(y=np.log10(15000), color='black', ls='--', label="OT")
     plt.tight_layout(pad=0.4)
     plt.savefig('figures/runtime_fig4.png')
 
@@ -128,8 +129,9 @@ def plot_DG_partial(Path, pe, MaxN, methods):
         print(data[-1])
         for p_ in data.keys():
             if p_ > 0:
-                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
+                print('$' + str(np.around(np.mean(data[p_]), rounding)) + ' \\pm ' + str(
+                    np.around(np.std(data[p_]), rounding)) + '$')
                 p.append(p_)
                 u.append(np.mean(runtimes))
                 sterr.append(np.std(runtimes))
@@ -143,12 +145,11 @@ def plot_DG_partial(Path, pe, MaxN, methods):
         plt.xticks(p)
     plt.xlabel(r'No. constants $n$', fontsize=15)
     plt.ylabel(r'Mean CPU time (seconds in $log_{10}$)', fontsize=15)
-    # plt.ylabel('Mean CPU time (seconds)', fontsize=15)
     handles, labels = plt.gca().get_legend_handles_labels()
     labels, handles = zip(
         *sorted(zip(labels, handles), key=lambda t: list(names.keys())[list(names.values()).index(t[0])]))
     plt.legend(handles, labels, prop={'size': 13})
-    c = 0.000006**2
+    c = 0.000006 ** 2
     plt.errorbar([1000, 2000, 3000, 4000, 5000],
                  np.log10([1000 ** 3 * c, 2000 ** 3 * c, 3000 ** 3 * c, 4000 ** 3 * c, 5000 ** 3 * c]),
                  label=r'log_{10}(n^3) + c',
@@ -190,7 +191,8 @@ def analysis_DG(Path, pes, N, methods):
         print(data[-1])
         for p_ in data.keys():
             if p_ > 0:
-                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
+                print('$' + str(np.around(np.mean(data[p_]), rounding)) + ' \\pm ' + str(
+                    np.around(np.std(data[p_]), rounding)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
                 p.append(p_)
                 u.append(min(np.mean(runtimes), OT))
@@ -223,37 +225,39 @@ def analysis_FB15K(Path):
         print(data[-1])
         for p_ in data.keys():
             if p_ != -1:
-                print('$' + str(np.around(np.mean(data[p_]), 2)) + ' \\pm ' + str(np.around(np.std(data[p_]), 2)) + '$')
+                print('$' + str(np.around(np.mean(data[p_]), rounding)) + ' \\pm ' + str(
+                    np.around(np.std(data[p_]), rounding)) + '$')
                 runtimes = [max(i, 0.001) for i in data[p_]]
                 p.append(p_)
                 u.append(min(np.mean(runtimes), OT))
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
 
+
 # mean and sterr data in Table 2
 # DG
-print("\n################ DG ################")
-analysis_DG('experiments/path/full/runtime/',
-                [0.01, 0.1, 0.5],
-                5000,
-                ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# DG+partial
-print("\n################ DG+partial ################")
-analysis_DG('experiments/path/partial/runtime/',
-                [0.01, 0.1, 0.5],
-                5000,
-                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
-# FB15K-237
-print("\n################ FB15K ################")
-analysis_FB15K('experiments/FB15K/runtime/')
+# print("\n################ DG ################")
+# analysis_DG('experiments/path/full/runtime/',
+#                 [0.01, 0.1, 0.5],
+#                 5000,
+#                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
+# # DG+partial
+# print("\n################ DG+partial ################")
+# analysis_DG('experiments/path/partial/runtime/',
+#                 [0.01, 0.1, 0.5],
+#                 5000,
+#                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
+# # FB15K-237
+# print("\n################ FB15K ################")
+# analysis_FB15K('experiments/FB15K/runtime/')
 
 
-# plot Figure 4
+# plot Figure 4 and compute statistics in Figure 4
 print("\n################ Figure 4 ################")
 plot_DG('experiments/path/full/runtime/',
         [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
         5000,
         ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# plot Figure 5
+# plot Figure 5 and compute statistics in Figure 5
 print("\n################ Figure 5 ################")
 plot_DG_partial('experiments/path/partial/runtime/',
                 0.001,
