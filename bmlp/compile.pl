@@ -29,7 +29,7 @@ lm_select(Cs,matrix([P,_],[T,T],[D,D],_),matrix([V1,1],[T,T],[1,D],_),Args) :-
     consult(CsPath),
     lm_stob(Cs,BXs),
     mname(P,'_q',V),
-    assign_name(Args,output_id,V,V1),
+    assign_name(Args,output_name,V,V1),
     write_row_matrix(BasePath,V1,1,0,BXs),!.
 lm_select(_,_,_,_) :-
     throw(error(bmlp_select_error,_)).

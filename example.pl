@@ -16,7 +16,7 @@ rms_ex :-
         compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
         % use repeated squaring module on M1
         % produce M2 that is automatically loaded
-        rms(M1,M2,[output_id='path']),
+        rms(M1,M2,[output_name='path']),
         % print output matrix if it has been loaded
         lm_print(M2).
 
@@ -32,7 +32,7 @@ smp_ex :-
         compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
         % query the database that contains c2 as the first argument
         % encode this query as a vector V1
-        lm_select([a],M1,V1,[output_id='ex_query']),
+        lm_select([a],M1,V1,[output_name='ex_query']),
         % produce a vector V2 as the result of query
         smp((V1,M1),V2),
         % print output vector if it has been loaded

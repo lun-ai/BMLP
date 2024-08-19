@@ -41,7 +41,7 @@ This module imports source code from the bmlp/ folder to support boolean matrix 
 
  bmlp :- init('./temp'),
          compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
-         rms(M1,M2,[output_id='path']),
+         rms(M1,M2,[output_name='path']),
          ln_print(M2).
 ```
 
