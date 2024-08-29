@@ -1,6 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %	Matrix compilation
+%	Author: Lun Ai and S.H. Muggleton
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
