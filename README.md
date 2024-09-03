@@ -139,6 +139,12 @@ Runtime results in the paper are stored at:
 - experiments/path/full/runtime (CPU runtime of BMLP-RMS and other systems)
 - experiments/path/partial/runtime (CPU runtime of BMLP-SMP and other systems)
 
+## Related work
+BMLP implementation extends the boolean matrix operation library in [DeepLog](https://github.com/StephenMuggleton/DeepLog) [6], an Inductive Logic Programming (ILP) system that uses the logarithmic boolean matrix squaring technique to construct the bottom clause.
+The DeepLog system invents new predicates by using boolean matrices to represent second-order programs. 
+While it falls within the BMLP setting, the author did not propose any boolean matrix framework like BMLP.
+The BMLP library contain updated methods that are more efficient than those in the original library.
+
 ## References
 
 [1] M. Gebser, R. Kaminski, B. Kaufmann, and T. Schaub, ‘Clingo = ASP + Control: Preliminary Report’, Technical Communications of the Thirtieth International Conference on Logic Programming (ICLP’14), vol. 14, pp. 1–9, 2014.
@@ -150,3 +156,5 @@ Runtime results in the paper are stored at:
 [4] J. Wielemaker, T. Schrijvers, M. Triska, and T. Lager, ‘SWI-Prolog’, Theory and Practice of Logic Programming, vol. 12, no. 1–2, pp. 67–96, 2012.
 
 [5] N.-F. Zhou, ‘The language features and architecture of B-Prolog’, Theory and Practice of Logic Programming, vol. 12, no. 1–2, pp. 189–218, Jan. 2012, doi: 10.1017/S1471068411000445.
+
+[6] S. H. Muggleton, 'Hypothesizing an algorithm from one example: the role of specificity', Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences, 381(2251): 20220046, 2023.
