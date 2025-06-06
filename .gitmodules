@@ -1,0 +1,3 @@
+[submodule "BMLP_GPU"]
+	path = BMLP_GPU
+	url = https://github.com/lun-ai/BMLP_GPU.git
