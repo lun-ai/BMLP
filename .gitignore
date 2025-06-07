@@ -21,6 +21,8 @@ experiments/Souffle
 __pycache__/
 *.py[cod]
 *$py.class
+bin/
+include/
 
 # C extensions
 *.so

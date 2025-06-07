@@ -14,12 +14,13 @@ colors = list(mcolors.TABLEAU_COLORS.values())
 
 names = {
     'swipl': 'SWI-Prolog*',
-    'bmlp-rms': 'BMLP-RMS',
-    'bmlp-smp': 'BMLP-SMP',
+    'bmlp-rms': 'BMLP-RMS-SWI',
+    'bmlp-smp': 'BMLP-SMP-SWI',
     'bpl': 'B-Prolog*',
     'clg': 'Clingo',
     'xsbpl': 'XSB-Prolog*',
     'souffle': 'Souffle',
+    'py-bmlp-gpu': 'BMLP-PyTorch',
     'ot': 'OT'
 }
 
@@ -36,7 +37,7 @@ markers = {
 }
 
 OT = 15000
-rounding = 4
+rounding = 2
 
 
 # Figure 4
@@ -57,7 +58,8 @@ def plot_DG(Path, pes, N, methods):
                     seen = True
                     break
             file = open(Path + f)
-            data[pe] = [float(l.strip()) for l in file.readlines() if isinstance(float(l.strip()), float)]
+            data[pe] = [float(l.strip()) for l in file.readlines()
+                        if isinstance(float(l.strip()), float)]
             if data_list == [] or not seen:
                 data_list.append(data)
     sorted_data_list = []
@@ -114,7 +116,8 @@ def plot_DG_partial(Path, pe, MaxN, methods):
                     seen = True
                     break
             file = open(Path + f)
-            data[int(N)] = [float(l.strip()) for l in file.readlines() if isinstance(float(l.strip()), float)]
+            data[int(N)] = [float(l.strip()) for l in file.readlines()
+                            if isinstance(float(l.strip()), float)]
             if data_list == [] or not seen:
                 data_list.append(data)
     sorted_data_list = []
@@ -151,7 +154,8 @@ def plot_DG_partial(Path, pe, MaxN, methods):
     plt.legend(handles, labels, prop={'size': 13})
     c = 0.000006 ** 2
     plt.errorbar([1000, 2000, 3000, 4000, 5000],
-                 np.log10([1000 ** 3 * c, 2000 ** 3 * c, 3000 ** 3 * c, 4000 ** 3 * c, 5000 ** 3 * c]),
+                 np.log10([1000 ** 3 * c, 2000 ** 3 * c, 3000 **
+                          3 * c, 4000 ** 3 * c, 5000 ** 3 * c]),
                  label=r'log_{10}(n^3) + c',
                  color='grey',
                  ls='--')
@@ -177,7 +181,8 @@ def analysis_DG(Path, pes, N, methods):
                     seen = True
                     break
             file = open(Path + f)
-            data[pe] = [float(l.strip()) for l in file.readlines() if isinstance(float(l.strip()), float)]
+            data[pe] = [float(l.strip()) for l in file.readlines()
+                        if isinstance(float(l.strip()), float)]
             if data_list == [] or not seen:
                 data_list.append(data)
     sorted_data_list = []
@@ -213,7 +218,8 @@ def analysis_FB15K(Path):
                     seen = True
                     break
             file = open(Path + f)
-            data['data'] = [float(l.strip()) for l in file.readlines() if isinstance(float(l.strip()), float)]
+            data['data'] = [float(l.strip()) for l in file.readlines(
+            ) if isinstance(float(l.strip()), float)]
             if data_list == [] or not seen:
                 data_list.append(data)
     sorted_data_list = data_list
@@ -231,35 +237,3 @@ def analysis_FB15K(Path):
                 p.append(p_)
                 u.append(min(np.mean(runtimes), OT))
                 sterr.append(np.std(runtimes) / np.sqrt(len(runtimes)))
-
-
-# mean and sterr data in Table 2
-# DG
-# print("\n################ DG ################")
-# analysis_DG('experiments/path/full/runtime/',
-#                 [0.01, 0.1, 0.5],
-#                 5000,
-#                 ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# # DG+partial
-# print("\n################ DG+partial ################")
-# analysis_DG('experiments/path/partial/runtime/',
-#                 [0.01, 0.1, 0.5],
-#                 5000,
-#                 ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])
-# # FB15K-237
-# print("\n################ FB15K ################")
-# analysis_FB15K('experiments/FB15K/runtime/')
-
-
-# plot Figure 4 and compute statistics in Figure 4
-print("\n################ Figure 4 ################")
-plot_DG('experiments/path/full/runtime/',
-        [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-        5000,
-        ['bmlp-rms', 'clg', 'bpl', 'swipl', 'souffle'])
-# plot Figure 5 and compute statistics in Figure 5
-print("\n################ Figure 5 ################")
-plot_DG_partial('experiments/path/partial/runtime/',
-                0.001,
-                5000,
-                ['bmlp-smp', 'clg', 'bpl', 'swipl', 'souffle'])

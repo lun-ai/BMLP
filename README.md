@@ -13,38 +13,69 @@ git clone git@github.com:lun-ai/BMLP.git
 cp -r BMLP/ TARGET_FOLDER
 ```
 BMLP depends on SWI-Prolog and we recommend version 9.2+.
+Additional Python packages are required if using BMLP with GPU and PyTorch.
 
-## Using BMLP modules
+## Usage
 
-We show an example from bmlp/tests.
-
-```commandline
-cd BMLP/
-swipl -s example.pl -t rms_ex
-```
+We showcase usage of BMLP in a simple directed graph with 3 nodes and 2 edges. This has the following incidence matrix.
 
 ```datalog
-% Example 1 in paper
 node(a).
 node(b).
 node(c).
 
-edge(a,b).
-edge(b,c).
+         a b c
+a       |0 1 0| % edge(a, b). 
+b       |0 0 1| % edge(b, c).
+c       |0 0 0|
 ```
+
+### BMLP on GPU
+
+BMLP on GPU aims to be Pythonic through PyTorch. This is implemented in the BMLP_GPU submodule.
+
+```python
+import torch
+from bmlp.core.tensor import *
+from bmlp.core.utils import *
+
+# Extract relations from a Prolog file and create matrices
+unary, binary = extract_relations_from_file('bmlp/tests/ex_p0.pl')
+data = create_matrices_from_relations('edge',
+                                      ['node', 'node'],
+                                      unary, binary)
+
+# Convert the data to a PyTorch tensor and apply RMS
+m1 = torch.tensor(data['matrix'],
+                  dtype=D_TYPE)
+m2 = RMS(m1)
+
+# Print the result
+print('RMS result:\n', m2)
+print_relations(convert_matrix_to_relations(
+    m2, data['index_to_entity']['node']))
+
+```
+BMLP_GPU provides additional wrappers for Boolean matrix operations. Extending existing modules or operators are easy through PyTorch. 
+
+### BMLP with SWI-Prolog
 
 BMLP methods and boolean operations are callable from bmlp.pl as a module in SWI-Prolog.
 This module imports source code from the bmlp/ folder to support boolean matrix operations.
 
-```datalog
+```Prolog
 :- use_module(bmlp).
 
 bmlp_ex :- init('./temp'),
-           compile('./bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
+           compile('bmlp/tests/ex_p0.pl',db(edge,[node,node],_),M1),
            rms(M1,M2,[output_name='path']),
            lm_print(M2).
 ```
 Calling the goal _bmlp_ex_ prints the output from the BMLP-RMS module. 
+```commandline
+swipl -s example.pl -t rms_ex
+```
+
 ```text
 path3 (3x3):
          a b c
@@ -54,13 +85,19 @@ c       |0 0 0|
 ```
 One can convert a matrix into facts by adding the following body to bmlp_ex. 
 This would print out the list [path(a,b), path(a,c), path(b,c)].
-```datalog
-...,
+```Prolog
+...
 lm_to_facts(M2,Fs),
 writeln(Fs).
 ```
 
-**Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
+<details>
+  <summary>
+  More details
+  </summary>
+  <p>
+
+  **Initialisation:** BMLP modules need to be initialised to a folder to save intermediate computation results and the default is BMLP/temp/. 
 If a database has not been encoded as a boolean matrix, it can be compiled via the _compile_ method.
 Otherwise, a matrix can be loaded using _lm_consult_ method.
 
@@ -77,11 +114,16 @@ bmlp/tests which can be invoked by
 ```commandline
 swipl -s bmlp.pl -t run_tests
 ```
+</p>
+</details>
+
+
 
 ## Reproducing results
 
 Experiments need to be run from BMLP/. All experiments have 10 repetitions.
 Non-BMLP methods runs can take up to many hours and some require installation (more details later).
+All results need to be copied to runtime/ folders for analysis.
 
 ### BMLP modules (BMLP-RMS & BMLP-SMP)
 
@@ -91,59 +133,46 @@ cd BMLP/
 bash run_exp.sh bmlp-rms full-5000 10
 bash run_exp.sh bmlp-smp partial-5000 10
 bash run_exp.sh bmlp-smp partial-range 10
-cp experiments/path/full/results/* experiments/path/full/runtime/
-cp experiments/path/partial/results/* experiments/path/partial/runtime/
 ```
 
 To reproduce results on FB15K-237 [3] (Table 2):
 ```commandline
 bash run_exp.sh bmlp-rms FB15K 10
-cp experiments/FB15K/results/* experiments/FB15K/runtime/
+```
+
+To benchmark BMLP GPU and PyTorch implementation
+```commandline
+bash run_exp.sh py-bmlp-gpu partial-5000 10
+bash run_exp.sh py-bmlp-gpu full-5000-colab 10
+bash run_exp.sh py-bmlp-gpu FB15K 10
 ```
 
 ### Non-BMLP systems
 
-Skip to the next section to use the existing results for non-BMLP systems.
-Otherwise, to get runtime of SYSTEM_NAME in DATASET:
+To get runtime of non-BMLP systems SYSTEM_NAME in DATASET:
 ```commandline
 bash run_exp.sh SYSTEM_NAME DATASET 10
 ```
-All results need to be copied to runtime/ folders for analysis.
-```commandline
-cp experiments/path/full/results/* experiments/path/full/runtime/
-cp experiments/path/partial/results/* experiments/path/partial/runtime/
-cp experiments/FB15K/results/* experiments/FB15K/runtime/
-```
+
 DATASET options are:
 - partial-range
 - partial-5000
 - full-5000
+- full-5000-colab (for results on colab)
 - FB15K
 
 SYSTEM_NAME options are:
-- bpl:   B-Prolog [5] (binary in experiments/systems.zip)
-- swipl: SWI-Prolog [4] ([install](https://www.swi-prolog.org/Download.html))
 - clg: Clingo [1] ([install](https://github.com/potassco/clingo/releases/))
-- souffle: Souffle [2] (binary in experiments/systems.zip)
+- souffle: Souffle [2] ([install](https://souffle-lang.github.io/install))
+- swipl: SWI-Prolog [4] ([install](https://www.swi-prolog.org/Download.html))
+- bpl:   B-Prolog [5] (binary in experiments/bpl.zip)
 
 ### Experimental data and analysis
-
-One can analysis runtime results from the BMLP/. 
-To generate statistical data in Table 2 and plot Figure 4 and 5:
-```commandline
-cd BMLP/
-python experiments/runtime_analysis.py
-```
+We provide a Jupyter notebook (scripts/analysis.ipynb) to compute statistical data and create figures.
 
 Runtime results in the paper are stored at:
-- experiments/path/full/runtime (CPU runtime of BMLP-RMS and other systems)
-- experiments/path/partial/runtime (CPU runtime of BMLP-SMP and other systems)
-
-## Related work
-BMLP implementation extends the boolean matrix operation library in [DeepLog](https://github.com/StephenMuggleton/DeepLog) [6], an Inductive Logic Programming (ILP) system that uses the logarithmic boolean matrix squaring technique to construct the bottom clause.
-The DeepLog system invents new predicates by using boolean matrices to represent second-order programs. 
-While it falls within the BMLP setting, the author did not propose any boolean matrix framework like BMLP.
-The BMLP library contain updated methods that are more efficient than those in the original library.
+- experiments/path/full/runtime (runtime of BMLP-RMS and other systems)
+- experiments/path/partial/runtime (runtime of BMLP-SMP and other systems)
 
 ## References
 

@@ -33,6 +33,11 @@ elif [ $2 == "full-5000" ]; then
     nodes=(5000)
     p=(0.0001 0.001 0.01 0.1 0.5 1)
     echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
+elif [ $2 == "full-5000-colab" ]; then
+    repo="experiments/path/full"
+    nodes=(5000)
+    p=(0.01 0.1 0.5)
+    echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
 elif [ $2 == "FB15K" ]; then
     repo="experiments/FB15K"
     nodes=(0)
@@ -53,9 +58,10 @@ for k in "${nodes[@]}"; do
         if [ $2 != "FB15K" ]; then
             swipl -s experiments/generate_BK.pl -g "generate_background($j,$k,'${repo}'),background_to_dl('${repo}'),halt" -q
             cp ${repo}/background.pl ${repo}/background.lp
+            python scripts/extract_path.py --src_path ${repo}
             fn="${j}pe_${k}nodes.txt"
         else
-            python ${repo}/extract_relation.py
+            python scripts/extract_fb15k.py
             fn="FB15K.txt"
         fi
         for method in "${methods[@]}"; do
@@ -68,6 +74,10 @@ for k in "${nodes[@]}"; do
             bmlp-rms)
             rm -f ./test/*
             swipl -s ${repo}/swi_bmlp.pl -t 'compute' -q
+            ;;
+            py-bmlp-gpu)
+            rm -f ./test/*
+            python ${repo}/py_bmlp.py
             ;;
         # SWI-Prolog
             swipl)
@@ -96,8 +106,8 @@ for k in "${nodes[@]}"; do
         # Souffle
             souffle)
             cd ${repo}
-            ${cur_dir}/experiments/Souffle/build/src/souffle -c -F . -D . souffle.dl -p souffle.log
-            ${cur_dir}/experiments/Souffle/build/src/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
+            ${cur_dir}/experiments/bin/souffle -c -F . -D . souffle.dl -p souffle.log
+            ${cur_dir}/experiments/bin/souffleprof souffle.log -j=${j}pe_${k}nodes.html > /dev/null
             cat ${j}pe_${k}nodes.html | grep "data={" | sed 's/.*\[//' | sed 's/,.*//'
             rm -f *.html *.facts *.csv *.log *.cpp
             cd ${cur_dir} > /dev/null

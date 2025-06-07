@@ -1,0 +1,8 @@
+numpy
+pandas
+ipykernel
+tqdm
+python-graphblas
+torch
+scikit-learn
+matplotlib
