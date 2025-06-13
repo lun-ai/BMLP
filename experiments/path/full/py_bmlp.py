@@ -18,6 +18,9 @@ if __name__ == "__main__":
     m1 = data1['matrix']
     device = torch.cuda.current_device()
     m1 = torch.tensor(m1, dtype=bmlp_tensor.D_TYPE, device=device)
+    print(f'is_cuda: {torch.cuda.is_available()}')
+    print(f'device: {device}')
+    print(f'sparsity: {torch.sum(m1 == 1)}')
     start = time.time()
     m3 = bmlp_tensor.RMS(m1)
     end = time.time()

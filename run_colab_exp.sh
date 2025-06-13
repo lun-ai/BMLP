@@ -23,7 +23,7 @@ if [ $2 == "partial-5000" ]; then
     nodes=(5000)
     p=(0.01 0.1 0.5)
     echo "Dataset: ${2}, n:${nodes[@]}, pe:${p[@]}"
-elif [ $2 == "full-5000-colab" ]; then
+elif [ $2 == "full-5000" ]; then
     repo="experiments/path/full"
     nodes=(5000)
     p=(0.01 0.1 0.5)

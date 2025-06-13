@@ -130,35 +130,29 @@ All results need to be copied to runtime/ folders for analysis.
 To run on datasets DG and DG+partial (Table 2 and Figure 4, 5): 
 ```commandline
 cd BMLP/
-bash run_exp.sh bmlp-rms full-5000 10
-bash run_exp.sh bmlp-smp partial-5000 10
-bash run_exp.sh bmlp-smp partial-range 10
+bash run_cpu_exp.sh bmlp-rms full-5000 10
+bash run_cpu_exp.sh bmlp-smp partial-5000 10
+bash run_cpu_exp.sh bmlp-smp partial-range 10
 ```
 
-To reproduce results on FB15K-237 [3] (Table 2):
+Colab.ipynb benchmarks BMLP GPU and PyTorch implementation on DG, DG+partial and FB15K-237 [3] (Table 3):
 ```commandline
-bash run_exp.sh bmlp-rms FB15K 10
-```
-
-To benchmark BMLP GPU and PyTorch implementation
-```commandline
-bash run_exp.sh py-bmlp-gpu partial-5000 10
-bash run_exp.sh py-bmlp-gpu full-5000-colab 10
-bash run_exp.sh py-bmlp-gpu FB15K 10
+bash run_colab_exp.sh py-bmlp-gpu partial-5000 10
+bash run_colab_exp.sh py-bmlp-gpu full-5000 10
+bash run_colab_exp.sh py-bmlp-gpu FB15K 10
 ```
 
 ### Non-BMLP systems
 
 To get runtime of non-BMLP systems SYSTEM_NAME in DATASET:
 ```commandline
-bash run_exp.sh SYSTEM_NAME DATASET 10
+bash run_cpu_exp.sh SYSTEM_NAME DATASET 10
 ```
 
 DATASET options are:
-- partial-range
-- partial-5000
-- full-5000
-- full-5000-colab (for results on colab)
+- partial-range (DG+partial, varying node size)
+- partial-5000  (DG+partial)
+- full-5000     (DG)
 - FB15K
 
 SYSTEM_NAME options are:
