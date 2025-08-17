@@ -1,5 +1,5 @@
 # BMLP
-Thank you for visiting the GitHub repository of our paper _Boolean Matrix Logic Programming_.
+This is the GitHub repository of the paper _Boolean Matrix Logic Programming_.
 
 ## Installation
 
