@@ -1,9 +1,5 @@
 # BMLP
 Thank you for visiting the GitHub repository of our paper _Boolean Matrix Logic Programming_.
-Here, we explain:
-- how to install BMLP modules
-- how to use BMLP modules
-- how to reproduce results in the paper
 
 ## Installation
 
