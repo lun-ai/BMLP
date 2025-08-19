@@ -1,5 +1,5 @@
 # BMLP
-This is the GitHub repository for the paper _Boolean Matrix Logic Programming_.
+This is the GitHub repository for the paper _Boolean Matrix Logic Programming on the GPU_.
 
 ## Installation
 
