@@ -177,3 +177,6 @@ Runtime results in the paper are stored at:
 [5] N.-F. Zhou, ‘The language features and architecture of B-Prolog’, Theory and Practice of Logic Programming, vol. 12, no. 1–2, pp. 189–218, Jan. 2012, doi: 10.1017/S1471068411000445.
 
 [6] S. H. Muggleton, 'Hypothesizing an algorithm from one example: the role of specificity', Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences, 381(2251): 20220046, 2023.
+
+## Contact
+lun.ai.public@gmail.com
